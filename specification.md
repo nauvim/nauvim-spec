@@ -277,7 +277,7 @@ Note 1 to entry: A client ID is distinct from a session ID, a Neovim channel ID 
 
 ### 3.47 process temporary directory
 
-directory in the client environment allocated uniquely to a Nauvim process and used as the base directory for the `client_file` arguments of `filesystem.copy` and `http.serve_file` and the `client_socket_path` argument of `local-forward.open_socket`
+directory in the client environment allocated uniquely to a Nauvim process and used as the base directory for the `client_file` input fields of `filesystem.copy` and `http.serve_file` and the `client_socket_path` input field of `local-forward.open_socket`
 
 Note 1 to entry: Its lifecycle is specified in 6.6.5, and the path-interpretation rules are specified in 11.2.6.
 
@@ -460,7 +460,7 @@ Automatic connection under 8.2.1 shall be a startup action. The welcome-page tra
 
 ### 6.5 Plugin-initiated session switching
 
-`nauvim-plugin` shall provide `nauvim-plugin::client.connect(host: string)` as specified in 11.7.4. The `host` argument shall be a host alias.
+`nauvim-plugin` shall provide `nauvim-plugin::client.connect({ host: string })` as specified in 11.7.4. The `host` field shall be a host alias.
 
 Subject to the no-effect rule in 7.3, the function shall send an RPC notification using the stored channel ID, with method name `nauvim-plugin/client.connect` and the parameter list `{ client_id, host }`. Immediately after successfully issuing the notification, `nauvim-plugin` shall execute detachment in the current host Neovim, for example through `:detach` or an equivalent operation. It shall not wait for a response or acknowledgment from Nauvim before initiating that detachment.
 
@@ -476,9 +476,9 @@ Cleanup shall remain associated with the attachment being left. The copy-stoppin
 
 Nauvim shall resolve the host alias using client-side configuration. The host Neovim shall delegate host-alias resolution and client-side connection management to Nauvim.
 
-EXAMPLE Calling `require("nauvim-plugin.client").connect("another-host")` requests a switch to the host selected by the client-side alias `"another-host"`.
+EXAMPLE Calling `require("nauvim-plugin.client").connect({ host = "another-host" })` requests a switch to the host selected by the client-side alias `"another-host"`.
 
-NOTE The argument is a Nauvim host alias. Its interpretation is defined by this interface rather than inherited from Neovim's `:connect` command.
+NOTE The `host` field is a Nauvim host alias. Its interpretation is defined by this interface rather than inherited from Neovim's `:connect` command.
 
 ### 6.6 Nauvim process termination and reopening
 
@@ -641,9 +641,9 @@ NOTE 2 Listing an RPC method elsewhere in this document does not itself require 
 
 #### 7.2.2 Asynchronous host-side setup
 
-After successfully calling `nvim_set_client_info`, Nauvim shall asynchronously invoke `require("nauvim-plugin.client").setup(client_id)` in the host Neovim using `nvim_exec2` or an equivalent execution RPC. The setup invocation shall execute when Nauvim is attached as a UI. The fair-scheduling requirement in 11.2.2 shall apply.
+After successfully calling `nvim_set_client_info`, Nauvim shall asynchronously invoke `require("nauvim-plugin.client").setup({ client_id = client_id })` in the host Neovim using `nvim_exec2` or an equivalent execution RPC. The setup invocation shall execute when Nauvim is attached as a UI. The fair-scheduling requirement in 11.2.2 shall apply.
 
-`client_id` shall be the process client ID specified in 7.2.1. Nauvim shall embed this value as an integer literal in the execution source it constructs in the client environment and sends to the host Neovim. This requirement shall also apply when an equivalent execution RPC is used. The host-side plugin shall construct the client name from this integer as specified in 11.7.1.
+The `client_id` field shall contain the process client ID specified in 7.2.1. Nauvim shall embed this field's value as an integer literal in the execution source it constructs in the client environment and sends to the host Neovim. This requirement shall also apply when an equivalent execution RPC is used. The host-side plugin shall construct the client name from this integer as specified in 11.7.1.
 
 A failure to load or execute the host-side setup, including absence of the `nauvim-plugin.client` module or failure to select a matching client, shall be ignored by `nauvim-core` and `nauvim-plugin`. Neither component shall raise or report an error, display a message or initiate recovery solely because of that failure.
 
@@ -693,7 +693,7 @@ When the corresponding functionality is enabled, Nauvim shall provide the filesy
 
 The filesystem interface copies files from the host environment to the client environment. The HTTP interface serves client-side files and opens GUI windows that access HTTP(S) URLs.
 
-The `client_file` arguments of `filesystem.copy` and `http.serve_file` shall share the process temporary directory as their path base, in accordance with 11.2.6.
+The `client_file` input fields of `filesystem.copy` and `http.serve_file` shall share the process temporary directory as their path base, in accordance with 11.2.6.
 
 EXAMPLE A Nauvim plugin requests a client-side HTTP(S) server to serve HTML and JavaScript assets for an interactive user interface. The server implementation can use `hyper` for HTTP handling.
 
@@ -1340,6 +1340,8 @@ In this document, the following notation applies:
 
 In API signatures, `int`, `string`, `bool` and `dict` denote an integer, a string, a Boolean value and a mapping, respectively. Type annotations in these signatures are descriptive notation rather than Lua syntax.
 
+Each `nauvim-plugin` Lua function specified by a signature in this clause shall take a single dictionary argument with the fields shown in that signature. This requirement shall include the internal `client.setup` entry point in 11.7.1. Neovim-facing clipboard-provider callbacks shall retain the signatures specified in 11.6.
+
 Every string sent or received through the `nauvim-plugin` interface shall be a valid UTF-8 byte sequence containing neither a NUL character (`U+0000`, byte `0x00`) nor a byte order mark (`U+FEFF`, UTF-8 bytes `EF BB BF`). This requirement shall apply throughout each string and at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
 
 `GridId` denotes an identifier of a Neovim UI grid, as used by the Neovim UI protocol. See [2].
@@ -1354,11 +1356,11 @@ The RPC message kinds and method names for the interfaces listed in Table 7 shal
 
 Every plugin RPC request or notification addressed to the Nauvim engine shall carry a mandatory `client_id: int` as its first method argument.
 
-The client ID shall be encapsulated within `nauvim-plugin` and shall not be a parameter of its public operation functions. `nauvim-plugin` shall construct the RPC parameter list by prepending its internally stored client ID to the arguments supplied to the public Lua function. The public Lua signatures describe the caller-facing arguments; the RPC argument lists in Table 7 include the internally added client ID.
+The client ID shall be encapsulated within `nauvim-plugin` and shall not be a field of its public operation input dictionaries. For each interface in Table 7, `nauvim-plugin` shall convert the input dictionary to a positional RPC argument array. It shall place its internally stored client ID first, followed by the values of the dictionary fields in the order specified in Table 7. The public Lua signatures describe the caller-facing dictionary fields; the RPC argument lists in Table 7 describe the arrays received by `nauvim-core`.
 
 The requirement to prepend the stored client ID shall also apply to the connection notification in 6.5 and to the clipboard RPCs in 11.6. Native Neovim API calls, including `nvim_set_client_info` and `nvim_exec2`, shall retain their Neovim-defined argument lists.
 
-EXAMPLE With a selected destination, the public call `require("nauvim-plugin.local-forward").clear(handle)` is encoded as the RPC notification `nauvim-plugin/local-forward.clear` with the parameter list `{ stored_client_id, handle }`.
+EXAMPLE With a selected destination, the public call `require("nauvim-plugin.local-forward").clear({ handle = handle })` is encoded as the RPC notification `nauvim-plugin/local-forward.clear` with the parameter list `{ stored_client_id, handle }`.
 
 **Table 7 — Public Lua API and RPC method mapping**
 
@@ -1468,7 +1470,7 @@ In each such case, an RPC request shall complete with a nil result and no error,
 
 #### 11.2.6 Client POSIX paths and confinement
 
-This subclause shall apply to the `client_file` arguments of `filesystem.copy` and `http.serve_file` and the `client_socket_path` argument of `local-forward.open_socket`. Let `T` denote the process temporary directory specified in 6.6.5, and let `P` denote the supplied path argument. These interfaces shall use `T` as the base directory for `P`.
+This subclause shall apply to the `client_file` input fields of `filesystem.copy` and `http.serve_file` and the `client_socket_path` input field of `local-forward.open_socket`, and to their corresponding RPC arguments. Let `T` denote the process temporary directory specified in 6.6.5, and let `P` denote the supplied path value. These interfaces shall use `T` as the base directory for `P`.
 
 Nauvim shall interpret `P` as a POSIX path using the supplied string. A string resembling a Windows path or a URL with a scheme shall still be interpreted as a POSIX path; it shall not receive Windows-path or URL interpretation. In particular, URL percent-decoding shall not be applied to `P`.
 
@@ -1506,8 +1508,11 @@ Handle lookup for each invocation shall follow 11.2.2. The idempotency requireme
 **Signature**
 
 ```text
-nauvim-plugin::local-forward.open_tcp(client_port: int, host_addr: string, host_port: int)
-    -> ret, err
+nauvim-plugin::local-forward.open_tcp({
+    client_port: int,
+    host_addr: string,
+    host_port: int
+}) -> ret, err
 ```
 
 This function shall issue an RPC request.
@@ -1527,10 +1532,10 @@ For forwarding through SSH, each accepted connection shall be forwarded using an
 **Signature**
 
 ```text
-nauvim-plugin::local-forward.open_socket(
+nauvim-plugin::local-forward.open_socket({
     client_socket_path: string,
     host_socket_path: string
-) -> ret, err
+}) -> ret, err
 ```
 
 This function shall issue an RPC request.
@@ -1558,7 +1563,7 @@ Binding failures queried through `local-forward.get_port` shall be returned as r
 **Signature**
 
 ```text
-nauvim-plugin::local-forward.clear(handle: int)
+nauvim-plugin::local-forward.clear({ handle: int })
 ```
 
 This function shall issue an RPC notification.
@@ -1580,7 +1585,7 @@ If no associated local forward or pending forwarding operation exists, the notif
 **Signature**
 
 ```text
-nauvim-plugin::local-forward.get_port(handle: int) -> ret, err
+nauvim-plugin::local-forward.get_port({ handle: int }) -> ret, err
 ```
 
 This function shall issue an RPC request using the method name `nauvim-plugin/local-forward.get_port`.
@@ -1608,11 +1613,11 @@ NOTE 2 A successful response reports successful client-side binding and the assi
 **Signature**
 
 ```text
-nauvim-plugin::filesystem.copy(
+nauvim-plugin::filesystem.copy({
     client_file: string,
     host_file: string,
     override: bool
-) -> ret, err
+}) -> ret, err
 ```
 
 This function shall issue an RPC request.
@@ -1670,7 +1675,7 @@ NOTE Directory enumeration requires read access. Looking up entries and traversi
 **Signature**
 
 ```text
-nauvim-plugin::filesystem.clear(handle: int)
+nauvim-plugin::filesystem.clear({ handle: int })
 ```
 
 This function shall issue an RPC notification.
@@ -1712,12 +1717,12 @@ This rule shall apply within an attachment and across attachments, including whe
 **Signature**
 
 ```text
-nauvim-plugin::http.serve_file(
+nauvim-plugin::http.serve_file({
     client_file: string,
     client_port: int,
     https: bool,
     http2: bool
-) -> ret, err
+}) -> ret, err
 ```
 
 This function shall issue an RPC request.
@@ -1758,7 +1763,7 @@ Whether the server handles multiple HTTP requests simultaneously is implementati
 **Signature**
 
 ```text
-nauvim-plugin::http.get_port(handle: int) -> ret, err
+nauvim-plugin::http.get_port({ handle: int }) -> ret, err
 ```
 
 This function shall issue an RPC request using the method name `nauvim-plugin/http.get_port`.
@@ -1784,7 +1789,7 @@ NOTE 2 A successful response reports successful binding and the assigned port. I
 **Signature**
 
 ```text
-nauvim-plugin::http.open_webview(url: string, position: dict)
+nauvim-plugin::http.open_webview({ url: string, position: dict })
     -> ret, err
 ```
 
@@ -1792,7 +1797,7 @@ This function shall issue an RPC request.
 
 Nauvim shall accept only the URL schemes `http` and `https` for `url`. A URL with any other scheme shall cause a request error to be returned to the host Neovim.
 
-The `position` argument shall have the following fields:
+The `position` field shall be a dictionary with the following fields:
 
 ```text
 {
@@ -1832,14 +1837,14 @@ For HTTPS access, the presentation component used by `open_webview` shall accept
 
 Except for this acceptance requirement, the public key infrastructure (PKI) and certificate-validation behaviour, including the handling of root and intermediate certificate authorities (CAs) and their certificates, are unspecified.
 
-NOTE The parameter name `url` describes the HTTP(S) resource to be accessed. URL terminology is described in [16].
+NOTE The field name `url` describes the HTTP(S) resource to be accessed. URL terminology is described in [16].
 
 #### 11.5.4 Clearing an HTTP server or window
 
 **Signature**
 
 ```text
-nauvim-plugin::http.clear(handle: int)
+nauvim-plugin::http.clear({ handle: int })
 ```
 
 This function shall issue an RPC notification.
@@ -1887,7 +1892,7 @@ The server shall map the URL path to a target in the client environment as speci
 | `/` | `client_file` |
 | `/path` | `client_file/path` |
 
-In Table 9, `client_file` denotes the filesystem location obtained by applying 11.2.6 to the API argument. The term `path` denotes the non-empty suffix following the initial slash and can contain further slash-separated path segments.
+In Table 9, `client_file` denotes the filesystem location obtained by applying 11.2.6 to the input field's value. The term `path` denotes the non-empty suffix following the initial slash and can contain further slash-separated path segments.
 
 Relative path references shall be supported and resolved against their applicable base URL in accordance with the reference-resolution rules in RFC 3986, Clause 5. The resulting URL path shall be mapped in accordance with Table 9.
 
@@ -2002,10 +2007,10 @@ vim.g.clipboard = require("nauvim-plugin.clipboard").provider
 **Internal registration signature**
 
 ```text
-nauvim-plugin::client.setup(client_id: int)
+nauvim-plugin::client.setup({ client_id: int })
 ```
 
-This function shall serve as Nauvim's internal registration entry point and shall execute in the host Neovim. Nauvim shall invoke it through the execution RPC specified in 7.2.2. Its `client_id` argument belongs to this internal registration interface, not to the public operation interfaces described in 11.1.
+This function shall serve as Nauvim's internal registration entry point and shall execute in the host Neovim. Nauvim shall invoke it through the execution RPC specified in 7.2.2. Its `client_id` input field belongs to this internal registration interface, not to the public operation interfaces described in 11.1.
 
 The function shall construct `"nauvim-client-{client_id}"` using the supplied client ID and the decimal representation specified in 7.2.1. It shall search the UI clients currently attached to the host Neovim for clients whose advertised `client.name` equals that constructed name.
 
@@ -2046,12 +2051,12 @@ The interface provides no separate means of checking whether a stored channel ID
 **Signature**
 
 ```text
-nauvim-plugin::client.connect(host: string)
+nauvim-plugin::client.connect({ host: string })
 ```
 
 This function shall issue an RPC notification using the method name `nauvim-plugin/client.connect`. It shall use the internally stored channel ID as the RPC destination and send the parameter list `{ client_id, host }`, with the internally stored client ID as its first argument.
 
-The `host` argument shall identify a host alias resolved by Nauvim in the client environment. Immediately after successfully issuing the notification, the function shall execute host-side detachment in accordance with 6.5. The function shall not wait for completion of detachment cleanup or of the new connection.
+The `host` field shall identify a host alias resolved by Nauvim in the client environment. Immediately after successfully issuing the notification, the function shall execute host-side detachment in accordance with 6.5. The function shall not wait for completion of detachment cleanup or of the new connection.
 
 If issuing the notification fails, the function shall display an error message and perform no further operation for that call. It shall not initiate host-side detachment, retry the notification or clear the stored identifiers as a consequence of that failure.
 
