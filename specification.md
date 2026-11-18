@@ -1382,6 +1382,8 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 
 The no-effect rule in 7.3 shall apply to the functions specified in this clause, except for `nauvim-plugin::client.setup`.
 
+`nauvim-core` shall perform the argument validation required by this document for plugin RPCs. `nauvim-plugin` shall check its stored client ID and RPC channel ID for `nil` as specified in 7.3, and shall otherwise validate only RPC-request return values.
+
 Plugin RPCs received by `nauvim-core` shall be subject to the client-ID checks in 11.2.5 before method-specific requirements are applied.
 
 #### 11.2.1 Lua return convention
