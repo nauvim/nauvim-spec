@@ -14,12 +14,13 @@ The configuration interface is specified to the extent stated in Clause 8. Other
 
 ## 2 Normative references
 
-The following documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
+The following documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
 
 - Neovim, [Nvim API — API contract](https://neovim.io/doc/user/api/#api-contract), help tag `api-contract`.
 - Neovim, [Nvim API — Client information](https://neovim.io/doc/user/api/), help tag `nvim_set_client_info()`.
+- Neovim, [Nvim API — Paste](https://neovim.io/doc/user/api/#nvim_paste()), help tag `nvim_paste()`.
 - Neovim, [Nvim UI protocol — UI options](https://neovim.io/doc/user/api-ui-events/#ui-option), help tag `ui-option`.
-- Neovim, [Providers — Clipboard integration](https://neovim.io/doc/user/provider/#provider-clipboard), help tags `provider-clipboard` and `g:clipboard`.
+- Neovim, [Providers — Clipboard integration and paste](https://neovim.io/doc/user/provider/), help tags `provider-clipboard`, `g:clipboard`, `provider-paste` and `ui-paste`.
 - Neovim, [Automatic commands — UILeave](https://neovim.io/doc/user/autocmd/#UILeave), help tag `UILeave`.
 - IETF, [RFC 3986: Uniform Resource Identifier (URI): Generic Syntax](https://www.rfc-editor.org/rfc/rfc3986.html), January 2005.
 - IETF, [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html), June 2022.
@@ -653,13 +654,13 @@ Setup failure shall not by itself prevent or terminate UI attachment or affect n
 
 `nauvim-plugin` shall remain usable when Nauvim is not attached.
 
-For every `nauvim-plugin` function other than `nauvim-plugin::client.setup`, if the stored RPC channel ID or the stored client ID specified in 11.7.2 is `nil` when the function is called, the function shall perform no operation.
+For every `nauvim-plugin` function other than `nauvim-plugin::client.setup` and the clipboard-provider `paste` callbacks specified in 11.6.2, if the stored RPC channel ID or the stored client ID specified in 11.7.2 is `nil` when the function is called, the function shall perform no operation.
 
 In this case, the function shall not issue an RPC request or notification, raise or return an error, or display any message. It shall return without waiting for `setup` to be called, and the call shall not be deferred for execution after setup.
 
-Functions using the `ret, err` convention in 11.2.1 shall return `nil, nil`. Other functions subject to this subclause, including functions that normally send notifications and clipboard-provider callbacks, shall return `nil`.
+Functions using the `ret, err` convention in 11.2.1 shall return `nil, nil`. Other functions subject to this subclause, including functions that normally send notifications and clipboard-provider `copy` callbacks, shall return `nil`.
 
-This no-effect rule shall take precedence over method-specific validation and operation requirements. It shall apply to functions that normally issue RPC requests or notifications and to clipboard-provider callbacks.
+This no-effect rule shall take precedence over method-specific validation and operation requirements. It shall apply to functions that normally issue RPC requests or notifications and to clipboard-provider `copy` callbacks. The clipboard-provider `paste` callbacks shall retain the behaviour specified in 11.6.2 regardless of whether an RPC destination is selected.
 
 ### 7.4 GUI operations
 
@@ -699,13 +700,17 @@ EXAMPLE A Nauvim plugin requests a client-side HTTP(S) server to serve HTML and 
 
 ### 7.8 Clipboard integration
 
-When clipboard functionality is enabled, `nauvim-core` shall provide RPC-based exchange of clipboard contents in both directions between the system clipboard in the client environment and the clipboard registers of the host Neovim.
+When clipboard functionality is enabled, `nauvim-core` shall support copying text from the host Neovim to the clipboard backend in the client environment and pasting text obtained from that backend into the host Neovim.
 
-The implementation may use a Nauvim-specific protocol for this exchange.
+For copying, `nauvim-plugin` shall provide the `clipboard.copy` function and clipboard provider specified in 11.6. On receiving a valid copy notification, `nauvim-core` shall pass its `text` argument to the selected clipboard backend. How `nauvim-core` uses the `register` argument is unspecified.
 
-`nauvim-plugin` shall provide the compatible host-side clipboard provider specified in 11.6. Additional dependencies for clipboard integration shall be subject to the client and host allocation in 9.2.
+For GUI paste operations, `nauvim-core` shall obtain text from the selected clipboard backend and send that text to the host Neovim using `nvim_paste()` or an equivalent operation that delivers the text as paste input. See [1] and [18].
 
-Client-side clipboard backend selection, availability validation and runtime error reporting shall follow 8.8.
+The GUI paste operation shall not obtain text through the clipboard provider's `paste` callbacks. Those callbacks shall have the behaviour specified in 11.6.2.
+
+The concrete client-side interfaces between `nauvim`, `nauvim-core` and clipboard backends are unspecified.
+
+Additional dependencies for clipboard integration shall be subject to the client and host allocation in 9.2. Client-side clipboard backend selection, availability validation and runtime error reporting shall follow 8.8.
 
 ## 8 Configuration
 
@@ -1303,6 +1308,10 @@ NOTE `openrussh-client` is developed as a separate project.
 
 Nauvim shall accept keyboard and mouse input.
 
+When clipboard functionality is enabled, `nauvim` should provide key bindings that users would find natural on the client platform to invoke the GUI paste functionality of `nauvim-core` specified in 7.8. The specific key bindings are unspecified.
+
+EXAMPLE `CTRL-V`, `CTRL-SHIFT-V` and `CMD-V` illustrate possible paste key bindings. These examples do not require any particular binding.
+
 Nauvim shall not transmit mouse input to the host Neovim as Neovim mouse events or otherwise deliver that input through Neovim's mouse-input facilities.
 
 Nauvim may use mouse input for GUI operations, including text selection, copying and actions invoked by clicking. Such actions may send RPC requests or notifications to the host Neovim, provided that they do not deliver mouse input through Neovim's mouse-input facilities.
@@ -1376,11 +1385,12 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 | `nauvim-plugin::http.get_port` | Request | `nauvim-plugin/http.get_port` | `client_id, handle` |
 | `nauvim-plugin::http.open_webview` | Request | `nauvim-plugin/http.open_webview` | `client_id, url, position` |
 | `nauvim-plugin::http.clear` | Notification | `nauvim-plugin/http.clear` | `client_id, handle` |
+| `nauvim-plugin::clipboard.copy` | Notification | `nauvim-plugin/clipboard.copy` | `client_id, register, text` |
 | `nauvim-plugin::client.connect` | Notification | `nauvim-plugin/client.connect` | `client_id, host` |
 
 ### 11.2 Common rules
 
-The no-effect rule in 7.3 shall apply to the functions specified in this clause, except for `nauvim-plugin::client.setup`.
+The no-effect rule in 7.3 shall apply to the functions specified in this clause, except for `nauvim-plugin::client.setup` and the clipboard-provider `paste` callbacks specified in 11.6.2.
 
 `nauvim-core` shall perform the argument validation required by this document for plugin RPCs. `nauvim-plugin` shall check its stored client ID and RPC channel ID for `nil` as specified in 7.3, and shall otherwise validate only RPC-request return values.
 
@@ -1978,6 +1988,33 @@ EXAMPLE For `/a%23b.html#section`, the server-side path identifies `a#b.html` be
 
 ### 11.6 Clipboard provider
 
+#### 11.6.1 Copying text
+
+**Signature**
+
+```text
+nauvim-plugin::clipboard.copy({
+    register: "+" | "*",
+    text: string
+})
+```
+
+This function shall issue an RPC notification using the method name `nauvim-plugin/clipboard.copy`. It shall use the internally stored channel ID as the RPC destination and send the parameter list `{ client_id, register, text }`, with the internally stored client ID as its first argument.
+
+The `register` field shall be either `"+"` or `"*"`.
+
+The `text` field shall be a single string satisfying 11.1 and representing single-line or multiline text. Lines shall be separated by LF (`U+000A`, byte `0x0a`). The string may include or omit a trailing LF.
+
+`nauvim-core` shall validate these arguments in accordance with 11.2 and 11.2.5 before passing `text` to the clipboard backend. If either argument is invalid, it shall not pass the text to the backend.
+
+For a valid notification, `nauvim-core` shall pass `text` to the selected clipboard backend as specified in 7.8. How it uses `register` is unspecified.
+
+The notification shall produce no RPC response. The function shall return `nil`; its return shall not indicate completion of the backend operation.
+
+The no-effect rule in 7.3 shall apply to this function. Backend availability and clipboard-operation errors shall follow 8.8.
+
+#### 11.6.2 Provider table
+
 **Value**
 
 ```text
@@ -1986,15 +2023,15 @@ nauvim-plugin::clipboard.provider
 
 `nauvim-plugin` shall expose `require("nauvim-plugin.clipboard").provider` as a clipboard-provider table suitable for direct assignment to `vim.g.clipboard` in the host Neovim.
 
-The provider shall conform to Neovim's clipboard-provider interface and shall use the clipboard functionality of `nauvim-core` specified in 7.8. It shall support copying clipboard-register contents to the client environment's system clipboard and obtaining that clipboard's contents for host Neovim clipboard-register reads. See [18].
+The table shall conform to Neovim's clipboard-provider interface. Its `copy` and `paste` dictionaries shall each provide callbacks for both `"+"` and `"*"`. The callback argument and result contracts shall follow that interface. See [18].
 
-RPC-request functions used by the provider shall follow the return convention in 11.2.1. The provider shall adapt their results to the argument and return-value contracts of Neovim's clipboard-provider callbacks.
+The `copy` callbacks shall use `nauvim-plugin::clipboard.copy` to copy the supplied clipboard-register contents. How they use that function, including how they adapt Neovim's callback arguments to its input dictionary, is unspecified, subject to the requirements of the clipboard-provider interface and 11.6.1. The no-effect rule in 7.3 shall apply to the `copy` callbacks.
 
-Selection and availability of the client-side backend, and reporting of errors encountered during its operation, shall follow 8.8.
+The `paste` callbacks shall supply no text for clipboard-register reads. They shall not access the client clipboard backend or issue RPC requests or notifications.
 
-The provider callbacks shall be subject to the no-effect rule in 7.3 when either the stored RPC channel ID or the stored client ID is `nil`.
+Each `paste` callback should return `{ {}, regtype }`, where the first element is an empty list of lines and `regtype` is a valid register type for a Neovim clipboard-provider result. The concrete implementation and return representation are otherwise unspecified, subject to the clipboard-provider interface and the requirement to supply no text.
 
-Every clipboard RPC sent to the Nauvim engine shall include the stored client ID as its first argument. The specific clipboard RPC method names, remaining message formats and choice of requests or notifications are unspecified, subject to the common RPC rules in 11.1 and 11.2. The Neovim-facing provider callback signatures shall follow the provider interface specified above.
+These requirements for the `paste` callbacks shall apply regardless of whether an RPC destination is selected. The callbacks shall be exempt from the no-effect and nil-return rules in 7.3.
 
 EXAMPLE The provider can be selected in the host Neovim's Lua configuration by the following assignment:
 
@@ -2377,7 +2414,7 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 
 [17] WHATWG. [Fetch Standard — CORS protocol](https://fetch.spec.whatwg.org/#http-cors-protocol).
 
-[18] Neovim. [Providers — Clipboard integration](https://neovim.io/doc/user/provider/#provider-clipboard).
+[18] Neovim. [Providers — Clipboard integration and paste](https://neovim.io/doc/user/provider/), help tags `provider-clipboard`, `g:clipboard`, `provider-paste` and `ui-paste`.
 
 [19] Neovim. [Automatic commands — UILeave](https://neovim.io/doc/user/autocmd/#UILeave).
 
