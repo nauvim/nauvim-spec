@@ -1351,7 +1351,9 @@ In API signatures, `int`, `string`, `bool` and `dict` denote an integer, a strin
 
 Each `nauvim-plugin` Lua function specified by a signature in this clause shall take a single dictionary argument with the fields shown in that signature. This requirement shall include the internal `client.setup` entry point in 11.7.1. Neovim-facing clipboard-provider callbacks shall retain the signatures specified in 11.6.
 
-Every string sent or received through the `nauvim-plugin` interface shall be a valid UTF-8 byte sequence containing neither a NUL character (`U+0000`, byte `0x00`) nor a byte order mark (`U+FEFF`, UTF-8 bytes `EF BB BF`). This requirement shall apply throughout each string and at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
+Every string carried in a plugin RPC request, notification or response shall be a valid UTF-8 byte sequence containing neither a NUL character (`U+0000`, byte `0x00`) nor a byte order mark (`U+FEFF`, UTF-8 bytes `EF BB BF`). This requirement shall apply throughout each string and at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
+
+These string requirements shall not apply to Lua error strings generated locally in the host Neovim that are not carried in a plugin RPC response.
 
 `GridId` denotes an identifier of a Neovim UI grid, as used by the Neovim UI protocol. See [2].
 
@@ -1392,7 +1394,11 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 
 The no-effect rule in 7.3 shall apply to the functions specified in this clause, except for `nauvim-plugin::client.setup` and the clipboard-provider `paste` callbacks specified in 11.6.2.
 
-`nauvim-core` shall perform the argument validation required by this document for plugin RPCs. `nauvim-plugin` shall check its stored client ID and RPC channel ID for `nil` as specified in 7.3, and shall otherwise validate only RPC-request return values.
+`nauvim-core` shall perform the argument validation required by this document for plugin RPCs.
+
+`nauvim-core` shall ensure that all result and error values returned in plugin RPC responses satisfy the applicable requirements of this document. This requirement shall apply to values of every type and at every nesting level. The means by which response-value conformance is ensured are unspecified.
+
+`nauvim-plugin` shall check its stored client ID and RPC channel ID for `nil` as specified in 7.3. It shall not validate plugin RPC arguments or responses received through RPC.
 
 Plugin RPCs received by `nauvim-core` shall be subject to the client-ID checks in 11.2.5 before method-specific requirements are applied.
 
@@ -1402,7 +1408,7 @@ Every `nauvim-plugin` RPC-request function shall use the Lua return convention `
 
 The value of `err` shall be `nil` when no request error is returned and non-`nil` when a request error is returned. Request errors shall be represented by this return value rather than raised as Lua errors.
 
-The type of `err` shall be `string | nil`. A non-nil `err` shall be a non-empty string satisfying 11.1; `err = ""` shall not be permitted.
+The type of `err` shall be `string | nil`. A non-nil `err` shall be a non-empty string; `err = ""` shall not be permitted. An `err` representing an error returned in a plugin RPC response shall satisfy 11.1.
 
 The absence of a request error shall be determined using `err == nil`. The value or truthiness of `ret` shall not be used as the error indicator.
 
