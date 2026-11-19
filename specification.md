@@ -1351,7 +1351,9 @@ In API signatures, `int`, `string`, `bool` and `dict` denote an integer, a strin
 
 Each `nauvim-plugin` Lua function specified by a signature in this clause shall take a single dictionary argument with the fields shown in that signature. This requirement shall include the internal `client.setup` entry point in 11.7.1. Neovim-facing clipboard-provider callbacks shall retain the signatures specified in 11.6.
 
-Every string carried in a plugin RPC request, notification or response shall be a valid UTF-8 byte sequence containing neither a NUL character (`U+0000`, byte `0x00`) nor a byte order mark (`U+FEFF`, UTF-8 bytes `EF BB BF`). This requirement shall apply throughout each string and at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
+Every string carried in a plugin RPC request, notification or response shall be a valid UTF-8 byte sequence. It shall contain neither `U+0000` (NUL, UTF-8 byte `00`) nor `U+FEFF` (ZERO WIDTH NO-BREAK SPACE, UTF-8 bytes `EF BB BF`). These requirements shall apply throughout each string and at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
+
+NOTE `U+FEFF` has a valid UTF-8 encoding; its exclusion is a restriction of this interface. At the start of a UTF-8 stream, it can serve as an encoding signature, also called a byte order mark (BOM), but does not indicate byte order. See [23], Clause 6.
 
 These string requirements shall not apply to Lua error strings generated locally in the host Neovim that are not carried in a plugin RPC response.
 
@@ -2429,3 +2431,5 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 [21] Neovim. [Lua engine — Importing Lua modules](https://neovim.io/doc/user/lua/#lua-module-load).
 
 [22] OpenSSH. [ssh_config(5): OpenSSH client configuration file](https://man.openbsd.org/ssh_config).
+
+[23] IETF. [RFC 3629: UTF-8, a transformation format of ISO 10646](https://www.rfc-editor.org/rfc/rfc3629.html), Section 6.
