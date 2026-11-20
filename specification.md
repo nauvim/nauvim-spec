@@ -1250,7 +1250,7 @@ config.use_ui_opts: string | nil
 
 An omitted or nil `ui_opts` shall be equivalent to an empty mapping. The default value of `use_ui_opts` shall be nil.
 
-Every key in `ui_opts` and every non-nil value of `use_ui_opts` shall be a non-empty, valid UTF-8 byte sequence containing neither `U+0000` (NUL) nor `U+FEFF` (ZERO WIDTH NO-BREAK SPACE).
+Every key in `ui_opts` and every non-nil value of `use_ui_opts` shall be a non-empty, valid UTF-8 byte sequence. It shall not begin with `U+FEFF` (ZERO WIDTH NO-BREAK SPACE) and shall not contain `U+0000` (NUL).
 
 Each non-nil entry in `ui_opts` shall be a dictionary with string keys. In 8.2.2 and this subclause, `object` denotes an arbitrary Lua value, subject to the prohibition on functions. UI-specific option dictionaries shall not contain functions at any nesting level, including as keys or values in nested tables.
 
@@ -1397,9 +1397,9 @@ In API signatures, `int`, `string`, `bool` and `dict` denote an integer, a strin
 
 Each `nauvim-plugin` Lua function specified by a signature in this clause shall take a single dictionary argument with the fields shown in that signature. This requirement shall include the internal `client.setup` entry point in 11.7.1. Neovim-facing clipboard-provider callbacks shall retain the signatures specified in 11.6.
 
-Every string carried in a plugin RPC request, notification or response shall be a valid UTF-8 byte sequence. It shall contain neither `U+0000` (NUL, UTF-8 byte `00`) nor `U+FEFF` (ZERO WIDTH NO-BREAK SPACE, UTF-8 bytes `EF BB BF`). These requirements shall apply throughout each string and at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
+Every string carried in a plugin RPC request, notification or response shall be a valid UTF-8 byte sequence. It shall not begin with `U+FEFF` (ZERO WIDTH NO-BREAK SPACE, UTF-8 bytes `EF BB BF`) and shall not contain `U+0000` (NUL, UTF-8 byte `00`). These requirements shall apply to each string at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
 
-NOTE `U+FEFF` has a valid UTF-8 encoding; its exclusion is a restriction of this interface. At the start of a UTF-8 stream, it can serve as an encoding signature, also called a byte order mark (BOM), but does not indicate byte order. See [23], Clause 6.
+NOTE `U+FEFF` has a valid UTF-8 encoding; its exclusion at the start of a string is a restriction of this interface. At the start of a UTF-8 stream, it can serve as an encoding signature, also called a byte order mark (BOM), but does not indicate byte order. See [23], Clause 6.
 
 These string requirements shall not apply to Lua error strings generated locally in the host Neovim that are not carried in a plugin RPC response.
 
