@@ -123,6 +123,21 @@ supporting references using the document's existing citation conventions.
 - Keep technical details in `specification.md`. Update this file only when the
   user requests a change to the maintenance instructions.
 
+## Commit messages
+
+When creating commits, write the subject and body in English using this format:
+
+```text
+<kind>: <short summary>
+
+<summary>
+```
+
+Use `spec`, `docs` or `chore` for `<kind>`, following the
+[branch naming categories](README.md#branch-naming). Choose the kind according
+to the changes in each commit. Keep the subject concise and separate it from
+the body with one blank line. The body summarises what changed and why.
+
 ## Verify and report
 
 Before finishing:

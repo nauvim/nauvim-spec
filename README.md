@@ -51,3 +51,19 @@ The [common rules](specification.md#112-common-rules) define `ret, err` results,
 The specification uses **shall** for requirements, **should** for recommendations, **may** for permissions and **can** for possibilities or capabilities. Notes, examples and the three annexes are informative.
 
 Details marked **unspecified** or **implementation-dependent** are intentionally left open to implementations. They are distinct from the design decisions still awaiting specification in Annex B. **Undefined behaviour** identifies cases for which the specification imposes no behavioural requirements.
+
+## Branch naming
+
+Use `<kind>/<topic>` for branch names. Choose the kind by the meaning of the change:
+
+| Kind | Use | Example |
+| --- | --- | --- |
+| `spec` | Add or change requirements, APIs, defaults or behaviour, or resolve specification contradictions. | `spec/rpc-response-validation` |
+| `docs` | Improve wording, terminology, structure or links without changing the specification's meaning. | `docs/utf8-terminology` |
+| `chore` | Change repository maintenance rules or settings. | `chore/agent-instructions` |
+
+- Write a short, descriptive topic using lowercase English words separated by hyphens. Use a single `/` between the kind and topic.
+- Classify the change by its meaning, not by the file being edited. A typo correction in `specification.md` uses `docs`; an API change accompanied by README updates uses `spec`.
+- An issue number may precede the topic, for example `spec/42-session-recovery`. Issue numbers are optional.
+
+Create a branch from `main` for each change and delete it after merging.
