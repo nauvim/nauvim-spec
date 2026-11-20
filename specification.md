@@ -282,6 +282,14 @@ directory in the client environment allocated uniquely to a Nauvim process and u
 
 Note 1 to entry: Its lifecycle is specified in 6.6.5, and the path-interpretation rules are specified in 11.2.6.
 
+### 3.48 UI implementation identifier
+
+**UI implementation ID**
+
+string identifying a concrete `nauvim` implementation for UI-specific configuration selection
+
+Note 1 to entry: A UI implementation ID identifies an application implementation, rather than an individual running process. It is distinct from the client ID specified in 3.46.
+
 ## 4 Architecture
 
 ### 4.1 Repository allocation
@@ -326,6 +334,10 @@ local nauvim = require("nauvim-plugin")
 `nauvim` shall contain the concrete application implementation using `nauvim-core` and a UI backend.
 
 It shall determine the concrete methods for creating GUI windows and GUI tabs and shall be responsible for their actual creation and management.
+
+`nauvim` shall provide its UI implementation ID to `nauvim-core` before UI-specific options are selected under 8.10. The ID shall satisfy the string requirements for keys in `ui_opts` specified in 8.10.1. Each implementation shall document its ID.
+
+Subject to those string requirements, the ID's format is unspecified. The ID should follow reverse domain name notation, with domain-name components written in reverse order. See [24], Section 3.
 
 The initial default implementation shall use Flutter.
 
@@ -767,11 +779,11 @@ The configuration interface shall provide settings for:
 - the Neovim program specification and Neovim configuration files;
 - client-side security policies;
 - the client-side clipboard backend and its timeout setting;
-- fonts used by the GUI implementation.
+- UI-specific application settings, including fonts.
 
 The intended configuration scope is limited to Nauvim application settings. An extensive editor-configuration interface comparable to Neovim's is outside the scope of this draft.
 
-All predefined field names in the Lua configuration shall use snake_case. Alternative kebab-case spellings shall not be accepted. This naming requirement shall not constrain user-defined host aliases.
+Except within UI-specific option dictionaries (8.10), all predefined field names in the Lua configuration shall use snake_case. Alternative kebab-case spellings of those names shall not be accepted. This naming requirement shall not constrain user-defined host aliases or keys in `ui_opts`.
 
 Nauvim shall provide default configuration values. The native SSH host-setting defaults are specified in 8.4.2. Defaults not otherwise specified in this document remain provisional.
 
@@ -806,13 +818,14 @@ Config = {
     default_host: string | nil,
     hosts: dict[string, Host] | nil,
     ssh: SshConf,
-    fonts: string | Font | list[Font],
+    ui_opts: dict[string, dict[string, object]] | nil,
+    use_ui_opts: string | nil,
 }
 
 config: Config
 ```
 
-The requirements for `Host`, `Clipboard`, `SshConf` and font settings shall be as specified in 8.3, 8.8, 8.9 and 8.10, respectively. Startup host selection shall follow 8.2.1.
+The requirements for `Host`, `Clipboard` and `SshConf` shall be as specified in 8.3, 8.8 and 8.9, respectively. UI-specific configuration shall follow 8.10. Startup host selection shall follow 8.2.1.
 
 ### 8.3 Host configuration and local host designation
 
@@ -1220,28 +1233,61 @@ Path values in `SshConf` shall be absolute paths in the client environment. A re
 
 Nauvim may omit permission checks for the paths in `SshConf`. Conformance to the OpenSSH client's permission-checking behaviour is not required. Errors encountered when accessing these files shall be handled under the otherwise applicable requirements of this document, including 8.5.4 for the OpenSSH configuration source.
 
-### 8.10 Font configuration and responsibilities
+<a id="810-font-configuration-and-responsibilities"></a>
 
-The top-level `fonts` setting shall have the following type:
+### 8.10 UI-specific configuration
+
+The `ui_opts` setting shall supply application settings specific to the `nauvim` implementation. Neovim UI attachment options shall remain subject to 6.3.1.
+
+#### 8.10.1 Structure, defaults and common validation
+
+The top-level `ui_opts` and `use_ui_opts` fields shall have the following types:
 
 ```text
-Font = {
-    family: string,
-    size: int | nil,
-}
-
-config.fonts: string | Font | list[Font]
+config.ui_opts: dict[string, dict[string, object]] | nil
+config.use_ui_opts: string | nil
 ```
 
-For a `Font` value, an omitted or nil `size` shall default to `12`. The default value of the `fonts` setting is unspecified.
+An omitted or nil `ui_opts` shall be equivalent to an empty mapping. The default value of `use_ui_opts` shall be nil.
 
-`nauvim` should search for fonts using fontconfig or a similar mechanism. Compatibility with fontconfig is not required. The concrete font-search algorithm is unspecified.
+Every key in `ui_opts` and every non-nil value of `use_ui_opts` shall be a non-empty, valid UTF-8 byte sequence containing neither `U+0000` (NUL) nor `U+FEFF` (ZERO WIDTH NO-BREAK SPACE).
+
+Each non-nil entry in `ui_opts` shall be a dictionary with string keys. In 8.2.2 and this subclause, `object` denotes an arbitrary Lua value, subject to the prohibition on functions. UI-specific option dictionaries shall not contain functions at any nesting level, including as keys or values in nested tables.
+
+Apart from the dictionary structure and the prohibition on functions, value ranges and representations within UI-specific option dictionaries are unspecified by this document. This includes string encoding, integer sign and range, and floating-point precision. The string requirements for keys in `ui_opts` and for `use_ui_opts` shall not apply to strings within option dictionaries.
+
+`nauvim-core` shall validate these common requirements for all entries in `ui_opts`, including unselected entries, and for `use_ui_opts`. Validation failures shall be handled under 8.1.2.
+
+#### 8.10.2 Selection and delivery
+
+After configuration evaluation, `nauvim-core` shall determine the selection key as follows:
+
+1. If `use_ui_opts` is non-nil, its value shall be used.
+2. Otherwise, the UI implementation ID supplied by `nauvim` under 4.5 shall be used.
+
+Keys shall be matched exactly. A key supplied by `use_ui_opts` need not match a UI implementation ID.
+
+`nauvim-core` shall treat an absent or nil entry at the selection key as an empty dictionary. A non-nil entry shall be a dictionary with string keys; otherwise, configuration validation shall fail under 8.1.2. `nauvim-core` shall make the resulting dictionary available to `nauvim`.
+
+An absent or nil entry shall not itself be a configuration-validation error. When an explicit `use_ui_opts` value has no matching entry or its entry is nil, `nauvim-core` shall use the empty dictionary rather than fall back to lookup using the UI implementation ID. Option dictionaries shall not be merged as part of selection.
+
+#### 8.10.3 Interpretation and responsibilities
+
+Each UI implementation shall define and document its UI-specific option schema, including field names, types, meanings and defaults. These schemas are outside the scope of this document.
+
+`nauvim` shall interpret and validate the selected option dictionary according to its schema. Such validation failures shall be handled under 8.1.2. Unselected dictionaries shall not be interpreted or validated against UI-specific schemas. The common validation requirements in 8.10.1 shall remain applicable.
+
+`nauvim-core` shall not interpret or validate UI-specific option fields beyond the common requirements in 8.10.1. The concrete interface used to deliver the selected dictionary to `nauvim` is unspecified.
+
+Font configuration shall be part of the UI-specific option schema. `nauvim` shall be responsible for font discovery, selection and application.
 
 `nauvim-core` shall not provide methods for searching for, applying, investigating or diagnosing fonts.
 
+UI-specific options shall not override the requirements of this document.
+
 ### 8.11 Other configuration details
 
-Annex A illustrates the configuration model, including client information, host entries, SSH settings, socket paths, clipboard settings and fonts. Annex A does not add normative requirements to Clause 8.
+Annex A illustrates the configuration model, including client information, host entries, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
 
 Configuration details that remain to be specified shall be distinguished from details expressly designated as unspecified or implementation-dependent. The matters still requiring specification are listed in Annex B.
 
@@ -1284,7 +1330,7 @@ Subject to 9.1, the implementation dependencies shall be allocated as listed in 
 | --- | --- | --- |
 | `nauvim-core` | `openrussh-client` | SSH support |
 | `nauvim-core` | `mlua` | Lua configuration evaluation with the `lua54` and `vendored` features |
-| `nauvim-core` | `directories` | General-purpose directory-path handling for `nauvim-core` configuration, directory-related `HostInfo` values and font directory paths (`font_dir`), among other uses |
+| `nauvim-core` | `directories` | General-purpose directory-path handling for `nauvim-core` configuration and directory-related `HostInfo` values, among other uses |
 | `nauvim-core` | `tempfile` | Management of the process temporary directory |
 | `nauvim-core` | `nvim-rpc-plugin` | Neovim RPC integration |
 | `nauvim-core` | `nvim-rpc-ui` | Neovim UI integration |
@@ -2117,7 +2163,7 @@ Nauvim shall perform the welcome-page transition and new connection attempt in a
 
 ### A.1 General
 
-This annex illustrates the configuration model specified in Clause 8 and the remaining provisional interfaces. Configuration details and defaults not specified by that clause are subject to change during implementation.
+This annex illustrates the configuration model specified in Clause 8 and the remaining provisional interfaces. Configuration details and defaults that remain provisional are subject to change during implementation. UI-specific option schemas are defined by the UI implementation under 8.10.
 
 The example uses the `HostInfo` table returned by the `nauvim-client-info` module injected by `nauvim-core`. Its fields describe the client environment, and `client.config_file` is a non-nil path to the selected Nauvim configuration file.
 
@@ -2177,17 +2223,6 @@ return {
         config = home .. "/.ssh/config",
         known_hosts = home .. "/.ssh/known_hosts",
     },
-
-    fonts = {
-        {
-            family = "",
-            size = 16,
-        },
-        {
-            family = "fallback",
-            size = 12,
-        },
-    },
 }
 ```
 
@@ -2203,7 +2238,7 @@ The remote entry uses functions whose `host` parameter is a `HostInfo` obtained 
 
 Both entries derive their socket names from the client hostname and client-side user name. The remote socket function combines that client-derived name with a host-side directory. The concrete socket-path derivation remains unspecified, subject to the ownership and rediscovery requirements in 6.2.
 
-The example also illustrates host-specific policy settings, global SSH file locations, automatic clipboard-backend detection and a font list. The top-level `clipboard = "auto"` explicitly selects the default backend-selection mode. The global SSH path defaults and the font types and size default are specified in 8.9 and 8.10. Empty policy tables and the particular font values in this example do not establish additional defaults or selection rules.
+The example also illustrates host-specific policy settings, global SSH file locations and automatic clipboard-backend detection. The top-level `clipboard = "auto"` explicitly selects the default backend-selection mode. The global SSH path defaults are specified in 8.9. Empty policy tables do not establish additional defaults or selection rules.
 
 For `"my-host"`, the SSH lookup name is `"my-host.com"`. The example contains no native SSH entry with that name, so resolution reads `ssh.config` for `"my-host.com"` and uses it for supplementation under 8.5.4, preserving the explicitly supplied SSH fields. The concrete inheritance of OpenSSH-derived settings is unspecified. An error in that required OpenSSH-source operation fails resolution. The example does not designate a fallback for a missing or unreadable SSH configuration file.
 
@@ -2349,6 +2384,43 @@ return {
 
 The timeout value in this example is illustrative and does not establish a default. Omitting `clipboard` or using `clipboard = "auto"` selects automatic detection under 8.8.1.
 
+### A.9 UI-specific configuration
+
+The following example assumes a UI implementation whose UI implementation ID is `"org.example.nauvim.flutter"` and whose option schema accepts the shown `keymaps`, `colorscheme` and `fonts` fields. The ID, field names, formats and values are illustrative; this document does not require support for this particular schema.
+
+```lua
+return {
+    ui_opts = {
+        ["org.example.nauvim.flutter"] = {
+            keymaps = {
+                { key = "CTRL_SHIFT_C", assign = "action.copy" },
+            },
+            colorscheme = {
+                red = "rgb(1.0, 0.0, 0.0)",
+            },
+            fonts = {
+                { family = "Example Mono", size = 16 },
+            },
+        },
+    },
+}
+```
+
+Because `use_ui_opts` is omitted, `nauvim-core` selects the entry using the ID supplied by `nauvim`. With the assumed ID `"org.example.nauvim.flutter"`, the selected dictionary contains the key mappings, colour scheme and font settings shown. An implementation supplying a different ID receives an empty dictionary from this example.
+
+The selection key can instead be supplied explicitly:
+
+```lua
+return {
+    ui_opts = {
+        ["some-alias"] = {},
+    },
+    use_ui_opts = "some-alias",
+}
+```
+
+Here, `nauvim-core` selects `ui_opts["some-alias"]` regardless of the supplied UI implementation ID. This allows a user-chosen key when UI implementations use conflicting IDs. The empty dictionary's interpretation is defined by the running UI implementation's schema. Removing the `"some-alias"` entry or setting it to nil also results in an empty dictionary; it does not cause lookup using the UI implementation ID.
+
 ## Annex B — Matters requiring further specification
 
 **(informative)**
@@ -2433,3 +2505,5 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 [22] OpenSSH. [ssh_config(5): OpenSSH client configuration file](https://man.openbsd.org/ssh_config).
 
 [23] IETF. [RFC 3629: UTF-8, a transformation format of ISO 10646](https://www.rfc-editor.org/rfc/rfc3629.html), Section 6.
+
+[24] IETF. [RFC 8252: OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.html#section-3), Section 3, definition of reverse domain name notation.
