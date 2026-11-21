@@ -14,7 +14,9 @@ The configuration interface is specified to the extent stated in Clause 8. Other
 
 ## 2 Normative references
 
-The following documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
+The [Type notation](type-notation.md) supplement shall define the abstract types, representation requirements and annotation syntax used throughout this document.
+
+The following external documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
 
 - Neovim, [Nvim API — API contract](https://neovim.io/doc/user/api/#api-contract), help tag `api-contract`.
 - Neovim, [Nvim API — Client information](https://neovim.io/doc/user/api/), help tag `nvim_set_client_info()`.
@@ -670,7 +672,7 @@ For every `nauvim-plugin` function other than `nauvim-plugin::client.setup` and 
 
 In this case, the function shall not issue an RPC request or notification, raise or return an error, or display any message. It shall return without waiting for `setup` to be called, and the call shall not be deferred for execution after setup.
 
-Functions using the `ret, err` convention in 11.2.1 shall return `nil, nil`. Other functions subject to this subclause, including functions that normally send notifications and clipboard-provider `copy` callbacks, shall return `nil`.
+Functions using the `(ret, err)` convention in 11.2.1 shall return `(nil, nil)`. Other functions subject to this subclause, including functions that normally send notifications and clipboard-provider `copy` callbacks, shall return `nil`.
 
 This no-effect rule shall take precedence over method-specific validation and operation requirements. It shall apply to functions that normally issue RPC requests or notifications and to clipboard-provider `copy` callbacks. The clipboard-provider `paste` callbacks shall retain the behaviour specified in 11.6.2 regardless of whether an RPC destination is selected.
 
@@ -813,7 +815,7 @@ Connection to a selected destination shall follow the startup, ownership, reuse 
 The top-level configuration fields shall have the following types:
 
 ```text
-Config = {
+Config := {
     clipboard: string | Clipboard | nil,
     default_host: string | nil,
     hosts: dict[string, Host] | nil,
@@ -832,17 +834,17 @@ The requirements for `Host`, `Clipboard` and `SshConf` shall be as specified in 
 `Host` shall have the following type:
 
 ```text
-Host = {
-    nvim: string | NvimProg | (function(HostInfo) -> (string | NvimProg)) | nil,
-    policies: table | nil,
+Host := {
+    nvim: string | NvimProg | (func(HostInfo) -> (string | NvimProg)) | nil,
+    policies: Policies | nil,
     ssh: SshHostConf | nil,
-    socket: string | (function(HostInfo) -> string) | nil,
+    socket: string | (func(HostInfo) -> string) | nil,
 }
 ```
 
 `SshHostConf` shall follow 8.4. The types, resolution and defaults for `nvim` and `socket` shall follow 8.7.
 
-The `policies` field shall belong to the individual host entry. Its table structure, setting meanings and default policy remain to be specified.
+The `policies` field shall belong to the individual host entry. `Policies` denotes its Lua table type; the definition of that type, setting meanings and default policy remain to be specified in Annex B.
 
 A configured host entry without SSH settings shall designate a host Neovim running in the client environment.
 
@@ -859,10 +861,10 @@ The SSH settings for a configured Nauvim host `X` shall be supplied by the Lua t
 The native host-table type `SshHostConf` shall be:
 
 ```text
-SshHostConf = {
+SshHostConf := {
     host_name: string | nil,
     user: string | nil,
-    port: int | string | nil,
+    port: u16 | string | nil,
     identity_file: string | nil,
     certificate_file: string | nil,
     identities_only: string | bool | nil,
@@ -1047,7 +1049,7 @@ The Lua configuration shall not provide a `request_tty` field. Any `RequestTTY` 
 `HostInfo` shall have the following structure. All fields other than `config_file` shall be present and have the indicated types. The value of `config_file` shall follow the client and host role requirements in 8.6.3 and 8.7.1.
 
 ```text
-HostInfo = {
+HostInfo := {
     host_name: string,
     user: string,
     config_file: string | nil,
@@ -1105,7 +1107,7 @@ In the failure case that prevents execution, whether the selected Lua configurat
 The structured program type `NvimProg` shall be:
 
 ```text
-NvimProg = {
+NvimProg := {
     prog: string | nil,
     args: list[string] | nil,
     env: dict[string, string] | nil,
@@ -1119,8 +1121,8 @@ An omitted or nil `prog` shall default to `"nvim"`. An omitted or nil `args` sha
 The settings shall accept the following types, irrespective of whether the host Neovim is local or remote:
 
 ```text
-hosts[X].nvim: string | NvimProg | (function(HostInfo) -> (string | NvimProg)) | nil
-hosts[X].socket: string | (function(HostInfo) -> string) | nil
+hosts[X].nvim: string | NvimProg | (func(HostInfo) -> (string | NvimProg)) | nil
+hosts[X].socket: string | (func(HostInfo) -> string) | nil
 ```
 
 An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply when no Lua host entry supplies the setting; host selection shall continue to follow 8.3 and 8.5.
@@ -1174,7 +1176,7 @@ The effect of that escaping on shell-specific expressions, including `~` and var
 Nauvim shall accept a top-level `clipboard` setting in the Lua configuration file, at the same level as `hosts`, with the following type:
 
 ```text
-Clipboard = {
+Clipboard := {
     backend: string | nil,
     timeout_ms: int | nil,
 }
@@ -1217,7 +1219,7 @@ EXAMPLE A dependency can be installed after validation fails, or removed after v
 The top-level `ssh` setting shall have the following type:
 
 ```text
-SshConf = {
+SshConf := {
     config: string | nil,
     known_hosts: string | nil,
 }
@@ -1252,9 +1254,9 @@ An omitted or nil `ui_opts` shall be equivalent to an empty mapping. The default
 
 Every key in `ui_opts` and every non-nil value of `use_ui_opts` shall be a non-empty, valid UTF-8 byte sequence. It shall not begin with `U+FEFF` (ZERO WIDTH NO-BREAK SPACE) and shall not contain `U+0000` (NUL).
 
-Each non-nil entry in `ui_opts` shall be a dictionary with string keys. In 8.2.2 and this subclause, `object` denotes an arbitrary Lua value, subject to the prohibition on functions. UI-specific option dictionaries shall not contain functions at any nesting level, including as keys or values in nested tables.
+Each non-nil entry in `ui_opts` shall be a dictionary with keys of type `string` and values of type `object`, as defined in [Type notation](type-notation.md#46-object). UI-specific option dictionaries shall not contain `bytes` values, tuples or functions at any nesting level.
 
-Apart from the dictionary structure and the prohibition on functions, value ranges and representations within UI-specific option dictionaries are unspecified by this document. This includes string encoding, integer sign and range, and floating-point precision. The string requirements for keys in `ui_opts` and for `use_ui_opts` shall not apply to strings within option dictionaries.
+Within the shared type requirements, value ranges and representations within UI-specific option dictionaries are unspecified by this document. This includes integer sign and range, and floating-point precision. All string keys and values within option dictionaries shall satisfy the shared `string` requirements, including UTF-8 encoding and the NUL and initial-`U+FEFF` exclusions. The additional non-empty requirement for keys in `ui_opts` and for `use_ui_opts` shall not apply to strings within option dictionaries.
 
 `nauvim-core` shall validate these common requirements for all entries in `ui_opts`, including unselected entries, and for `use_ui_opts`. Validation failures shall be handled under 8.1.2.
 
@@ -1393,7 +1395,7 @@ In this document, the following notation applies:
 - `nauvim-plugin::X` denotes `require("nauvim-plugin.X")`;
 - `nauvim-plugin::X.Y` denotes `require("nauvim-plugin.X").Y`.
 
-In API signatures, `int`, `string`, `bool` and `dict` denote an integer, a string, a Boolean value and a mapping, respectively. Type annotations in these signatures are descriptive notation rather than Lua syntax.
+Type annotations shall follow [Type notation](type-notation.md). They are descriptive notation rather than Lua syntax. In request signatures, `-> (ret, err)` names the components of the result tuple governed by 11.2.1.
 
 Each `nauvim-plugin` Lua function specified by a signature in this clause shall take a single dictionary argument with the fields shown in that signature. This requirement shall include the internal `client.setup` entry point in 11.7.1. Neovim-facing clipboard-provider callbacks shall retain the signatures specified in 11.6.
 
@@ -1403,7 +1405,11 @@ NOTE `U+FEFF` has a valid UTF-8 encoding; its exclusion at the start of a string
 
 These string requirements shall not apply to Lua error strings generated locally in the host Neovim that are not carried in a plugin RPC response.
 
-`GridId` denotes an identifier of a Neovim UI grid, as used by the Neovim UI protocol. See [2].
+`GridId` shall have the following type and shall denote an identifier of a Neovim UI grid, as used by the Neovim UI protocol. See [2].
+
+```text
+GridId := int
+```
 
 RPC request and notification method names addressed to the Nauvim engine through `nauvim-plugin` shall match the following complete-string pattern:
 
@@ -1413,7 +1419,7 @@ RPC request and notification method names addressed to the Nauvim engine through
 
 The RPC message kinds and method names for the interfaces listed in Table 7 shall be as specified in that table.
 
-Every plugin RPC request or notification addressed to the Nauvim engine shall carry a mandatory `client_id: int` as its first method argument.
+Every plugin RPC request or notification addressed to the Nauvim engine shall carry a mandatory `client_id: u32` as its first method argument.
 
 The client ID shall be encapsulated within `nauvim-plugin` and shall not be a field of its public operation input dictionaries. For each interface in Table 7, `nauvim-plugin` shall convert the input dictionary to a positional RPC argument array. It shall place its internally stored client ID first, followed by the values of the dictionary fields in the order specified in Table 7. The public Lua signatures describe the caller-facing dictionary fields; the RPC argument lists in Table 7 describe the arrays received by `nauvim-core`.
 
@@ -1452,7 +1458,7 @@ Plugin RPCs received by `nauvim-core` shall be subject to the client-ID checks i
 
 #### 11.2.1 Lua return convention
 
-Every `nauvim-plugin` RPC-request function shall use the Lua return convention `ret, err`.
+Every `nauvim-plugin` RPC-request function shall return the tuple `(ret, err)`. In the Lua binding, its components shall be returned as two separate return values in that order.
 
 The value of `err` shall be `nil` when no request error is returned and non-`nil` when a request error is returned. Request errors shall be represented by this return value rather than raised as Lua errors.
 
@@ -1462,7 +1468,7 @@ The absence of a request error shall be determined using `err == nil`. The value
 
 The meaning and type of a successful `ret` shall be as specified for the applicable method.
 
-An RPC notification shall not produce an RPC response. The `ret, err` convention does not establish a response for a notification.
+An RPC notification shall not produce an RPC response. The `(ret, err)` convention does not establish a response for a notification.
 
 NOTE This is a Lua interface convention. MessagePack-RPC represents a response using separate error and result fields in a single response message. See [7].
 
@@ -1532,7 +1538,7 @@ These requirements shall apply whether the RPC was sent through `nauvim-plugin` 
 
 `nauvim-core` shall perform no operation if `client_id` is missing, is `nil`, is not an integer, is outside the inclusive range from `0` to `4294967295`, or does not equal the client ID of the receiving Nauvim process.
 
-In each such case, an RPC request shall complete with a nil result and no error, corresponding to the Lua return values `nil, nil`. An RPC notification shall have no effect and shall produce no response. These no-effect rules shall take precedence over the applicable method's normal validation, result and operation requirements.
+In each such case, an RPC request shall complete with a nil result and no error, corresponding to the Lua return values `(nil, nil)`. An RPC notification shall have no effect and shall produce no response. These no-effect rules shall take precedence over the applicable method's normal validation, result and operation requirements.
 
 #### 11.2.6 Client POSIX paths and confinement
 
@@ -1575,10 +1581,10 @@ Handle lookup for each invocation shall follow 11.2.2. The idempotency requireme
 
 ```text
 nauvim-plugin::local-forward.open_tcp({
-    client_port: int,
+    client_port: u16,
     host_addr: string,
-    host_port: int
-}) -> ret, err
+    host_port: u16
+}) -> (ret, err)
 ```
 
 This function shall issue an RPC request.
@@ -1601,7 +1607,7 @@ For forwarding through SSH, each accepted connection shall be forwarded using an
 nauvim-plugin::local-forward.open_socket({
     client_socket_path: string,
     host_socket_path: string
-}) -> ret, err
+}) -> (ret, err)
 ```
 
 This function shall issue an RPC request.
@@ -1651,7 +1657,7 @@ If no associated local forward or pending forwarding operation exists, the notif
 **Signature**
 
 ```text
-nauvim-plugin::local-forward.get_port({ handle: int }) -> ret, err
+nauvim-plugin::local-forward.get_port({ handle: int }) -> (ret, err)
 ```
 
 This function shall issue an RPC request using the method name `nauvim-plugin/local-forward.get_port`.
@@ -1660,7 +1666,7 @@ Nauvim shall resolve `handle` to a TCP-forwarding operation or TCP forward creat
 
 If binding has not yet completed or failed, Nauvim shall wait for the outcome of the associated binding operation. This waiting shall be non-blocking for Nauvim: the application shall remain able to process UI events, RPC messages and other work while the request is pending.
 
-If Nauvim processes the corresponding `local-forward.clear` notification while this request is waiting, it shall immediately complete the request with a nil result and no error. The Lua return values shall be `nil, nil`. Completion of binding or cleanup shall not be awaited before completing that request.
+If Nauvim processes the corresponding `local-forward.clear` notification while this request is waiting, it shall immediately complete the request with a nil result and no error. The Lua return values shall be `(nil, nil)`. Completion of binding or cleanup shall not be awaited before completing that request.
 
 Once binding has succeeded, the successful `ret` shall be the integer port number actually assigned to the TCP listener in the client environment. If binding had already succeeded before the request was received, Nauvim shall return that assigned port.
 
@@ -1683,7 +1689,7 @@ nauvim-plugin::filesystem.copy({
     client_file: string,
     host_file: string,
     override: bool
-}) -> ret, err
+}) -> (ret, err)
 ```
 
 This function shall issue an RPC request.
@@ -1785,10 +1791,10 @@ This rule shall apply within an attachment and across attachments, including whe
 ```text
 nauvim-plugin::http.serve_file({
     client_file: string,
-    client_port: int,
+    client_port: u16,
     https: bool,
     http2: bool
-}) -> ret, err
+}) -> (ret, err)
 ```
 
 This function shall issue an RPC request.
@@ -1829,7 +1835,7 @@ Whether the server handles multiple HTTP requests simultaneously is implementati
 **Signature**
 
 ```text
-nauvim-plugin::http.get_port({ handle: int }) -> ret, err
+nauvim-plugin::http.get_port({ handle: int }) -> (ret, err)
 ```
 
 This function shall issue an RPC request using the method name `nauvim-plugin/http.get_port`.
@@ -1838,7 +1844,7 @@ Nauvim shall resolve `handle` to a server-startup operation or server created th
 
 If binding has not yet completed or failed, Nauvim shall wait for the outcome of the associated binding operation. This waiting shall be non-blocking for Nauvim: the application shall remain able to process UI events, RPC messages and other work while the request is pending.
 
-If Nauvim processes the corresponding `http.clear` notification while this request is waiting, it shall immediately complete the request with a nil result and no error. The Lua return values shall be `nil, nil`. Completion of binding or cleanup shall not be awaited before completing that request.
+If Nauvim processes the corresponding `http.clear` notification while this request is waiting, it shall immediately complete the request with a nil result and no error. The Lua return values shall be `(nil, nil)`. Completion of binding or cleanup shall not be awaited before completing that request.
 
 Once binding has succeeded, the successful `ret` shall be the integer port number actually assigned to the bound socket. If binding had already succeeded before the request was received, Nauvim shall return that assigned port. When `serve_file` was called with `client_port == 0`, this result shall be the port allocated by the operating system.
 
@@ -1855,8 +1861,8 @@ NOTE 2 A successful response reports successful binding and the assigned port. I
 **Signature**
 
 ```text
-nauvim-plugin::http.open_webview({ url: string, position: dict })
-    -> ret, err
+nauvim-plugin::http.open_webview({ url: string, position: WebviewPosition })
+    -> (ret, err)
 ```
 
 This function shall issue an RPC request.
@@ -1866,12 +1872,12 @@ Nauvim shall accept only the URL schemes `http` and `https` for `url`. A URL wit
 The `position` field shall be a dictionary with the following fields:
 
 ```text
-{
+WebviewPosition := {
     grid: GridId,
-    top: int,
-    left: int,
-    height: int,
-    width: int,
+    top: u16,
+    left: u16,
+    height: u16,
+    width: u16,
 }
 ```
 
@@ -2100,7 +2106,7 @@ vim.g.clipboard = require("nauvim-plugin.clipboard").provider
 **Internal registration signature**
 
 ```text
-nauvim-plugin::client.setup({ client_id: int })
+nauvim-plugin::client.setup({ client_id: u32 })
 ```
 
 This function shall serve as Nauvim's internal registration entry point and shall execute in the host Neovim. Nauvim shall invoke it through the execution RPC specified in 7.2.2. Its `client_id` input field belongs to this internal registration interface, not to the public operation interfaces described in 11.1.

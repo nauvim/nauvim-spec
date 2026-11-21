@@ -6,6 +6,8 @@ The design keeps Neovim running independently of the GUI, so sessions can surviv
 
 **Status: working draft.** This repository describes Nauvim's intended behaviour. [specification.md](specification.md) contains the requirements; this README is an informative reading guide.
 
+[Type notation](type-notation.md) defines the shared abstract types, representation rules and annotation syntax used by the specification.
+
 The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`nauvim-core`), a host-side Lua interface (`nauvim-plugin`) and the GUI application (`nauvim`). Flutter is the initial UI backend.
 
 ## Where to start
@@ -36,7 +38,7 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 
 ## Plugin API shortcuts
 
-The [common rules](specification.md#112-common-rules) define `ret, err` results, asynchronous handles, client-ID checks, path confinement and idempotent handle operations. Module-specific contracts follow:
+The [common rules](specification.md#112-common-rules) define `(ret, err)` results, asynchronous handles, client-ID checks, path confinement and idempotent handle operations. Module-specific contracts follow:
 
 | Module | Operations |
 | --- | --- |
