@@ -1798,11 +1798,11 @@ Within the RPC request, Nauvim shall first interpret and validate `client_file` 
 - `client_file` exists in the client environment;
 - its metadata identifies a regular file, a directory, or a symbolic link resolving to a regular file or directory;
 - `client_port` is in the range from `0` to `65535`, inclusive;
-- at least one of `https` and `http2` is true.
+- if `http2` is true, `https` is also true.
 
 Failure of these checks shall be returned to the host Neovim as a request error.
 
-In particular, `https == false` together with `http2 == false` shall be treated as an argument-validation error. Nauvim shall return a request error without starting the server.
+In particular, `https == false` together with `http2 == true` shall be treated as an argument-validation error. Nauvim shall return a request error without starting the server.
 
 For a directory or a symbolic link to a directory, Nauvim shall not inspect the metadata of descendant entries as part of the RPC request. The server shall check that metadata dynamically when serving the corresponding files.
 
