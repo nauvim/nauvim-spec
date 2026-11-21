@@ -1810,6 +1810,8 @@ Failure of these checks shall be returned to the host Neovim as a request error.
 
 In particular, `https == false` together with `http2 == true` shall be treated as an argument-validation error. Nauvim shall return a request error without starting the server.
 
+NOTE HTTP/2 supports cleartext connections with prior knowledge (RFC 9113, 3.3). The limited protection that cleartext HTTP/2 provides against cross-protocol attacks is one reason Nauvim requires HTTPS for HTTP/2 file serving (RFC 9113, 10.2).
+
 For a directory or a symbolic link to a directory, Nauvim shall not inspect the metadata of descendant entries as part of the RPC request. The server shall check that metadata dynamically when serving the corresponding files.
 
 After the checks succeed, Nauvim shall initiate asynchronous startup of a client-side HTTP server using the IPv4 loopback address `127.0.0.1` and the requested `client_port`.
