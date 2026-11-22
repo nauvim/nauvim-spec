@@ -26,19 +26,18 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 | [4 Architecture](specification.md#4-architecture) | Responsibilities of the four repositories and the boundary between the engine, plugin and UI backend. |
 | [5 Environments and compatibility](specification.md#5-supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
 | [6 Session management](specification.md#6-session-management) | Startup, ownership, reattachment, host switching, shutdown, resource cleanup and connection recovery. |
-| [7 Plugin interface and client operations](specification.md#7-plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security recommendations. |
-| [8 Configuration](specification.md#8-configuration) | Lua loading, host selection, SSH resolution, host information, program arguments, clipboard backends and UI-specific options. |
+| [7 Plugin interface and client operations](specification.md#7-plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
+| [8 Configuration](specification.md#8-configuration) | Lua loading, host selection, host-specific security policies, SSH resolution, host information, program arguments, clipboard backends and UI-specific options. |
 | [9 Build-time features and dependencies](specification.md#9-build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
 | [10 User interaction and rendering](specification.md#10-user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
 | [11 Nauvim plugin API](specification.md#11-nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
-| [Annex A — Configuration examples](specification.md#annex-a--configuration-examples) | Example Lua configurations, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
-| [Annex B — Open decisions](specification.md#annex-b--matters-requiring-further-specification) | The remaining decisions about host-specific security-policy configuration. |
-| [Annex C — OpenSSH correspondences](specification.md#annex-c--openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
+| [Annex A — Configuration examples](specification.md#annex-a--configuration-examples) | Example Lua configurations, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
+| [Annex B — OpenSSH correspondences](specification.md#annex-b--openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
 | [Bibliography](specification.md#bibliography) | Supporting Neovim, protocol, Lua and operating-system documentation. |
 
 ## Plugin API shortcuts
 
-The [common rules](specification.md#112-common-rules) define `(ret, err)` results, asynchronous handles, client-ID checks, path confinement and idempotent handle operations. Module-specific contracts follow:
+The [common rules](specification.md#112-common-rules) define `(ret, err)` results, asynchronous handles, client-ID and host policy checks, path confinement and idempotent handle operations. Module-specific contracts follow:
 
 | Module | Operations |
 | --- | --- |
@@ -50,9 +49,9 @@ The [common rules](specification.md#112-common-rules) define `(ret, err)` result
 
 ## Reading the requirements
 
-The specification uses **shall** for requirements, **should** for recommendations, **may** for permissions and **can** for possibilities or capabilities. Notes, examples and the three annexes are informative.
+The specification uses **shall** for requirements, **should** for recommendations, **may** for permissions and **can** for possibilities or capabilities. Notes, examples and annexes are informative.
 
-Details marked **unspecified** or **implementation-dependent** are intentionally left open to implementations. They are distinct from the design decisions still awaiting specification in Annex B. **Undefined behaviour** identifies cases for which the specification imposes no behavioural requirements.
+Details marked **unspecified** or **implementation-dependent** are intentionally left open to implementations. **Undefined behaviour** identifies cases for which the specification imposes no behavioural requirements.
 
 ## Branch naming
 

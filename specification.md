@@ -10,13 +10,13 @@ It covers local and remote session management, remote procedure call (RPC) commu
 
 This document applies to the initial Flutter implementation and the components that are independent of the user interface (UI). Native input method editor (IME) integration is outside its scope.
 
-The configuration interface is specified to the extent stated in Clause 8. Other configuration details remain provisional. Annex A provides informative examples. Annex B identifies matters requiring further specification. Annex C provides informative guidance on OpenSSH configuration inheritance.
+The configuration interface is specified to the extent stated in Clause 8. Other configuration details remain provisional. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
 
 ## 2 Normative references
 
 The [Type notation](type-notation.md) supplement shall define the abstract types, representation requirements and annotation syntax used throughout this document.
 
-The following external documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
+The following external documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP(S) origins in 8.3.2, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
 
 - Neovim, [Nvim API — API contract](https://neovim.io/doc/user/api/#api-contract), help tag `api-contract`.
 - Neovim, [Nvim API — Client information](https://neovim.io/doc/user/api/), help tag `nvim_set_client_info()`.
@@ -28,7 +28,7 @@ The following external documents apply to the provisions that explicitly referen
 - IETF, [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html), June 2022.
 - IETF, [RFC 9113: HTTP/2](https://www.rfc-editor.org/rfc/rfc9113.html), June 2022.
 
-Other supporting technical documents are listed in the Bibliography. The OpenSSH configuration guidance in 8.5.4 and Annex C uses `ssh_config(5)` [22] as an informative reference.
+Other supporting technical documents are listed in the Bibliography. The OpenSSH configuration guidance in 8.5.4 and Annex B uses `ssh_config(5)` [22] as an informative reference.
 
 ## 3 Terms and definitions
 
@@ -698,6 +698,8 @@ EXAMPLE A web server runs in a Docker container with its service published on ho
 
 ### 7.6 Client-side security
 
+Nauvim shall apply the host-specific security policies defined in 8.3.2 to the operations specified in 11.2.8.
+
 Nauvim should restrict operations delegated by host Neovims using sandboxing, configurable security policies or both.
 
 The restriction mechanism should apply to access to client resources, including GUI operations and local port forwarding.
@@ -716,7 +718,7 @@ EXAMPLE A Nauvim plugin requests a client-side HTTP(S) server to serve HTML and 
 
 When clipboard functionality is enabled, `nauvim-core` shall support copying text from the host Neovim to the clipboard backend in the client environment and pasting text obtained from that backend into the host Neovim.
 
-For copying, `nauvim-plugin` shall provide the `clipboard.copy` function and clipboard provider specified in 11.6. On receiving a valid copy notification, `nauvim-core` shall pass its `text` argument to the selected clipboard backend. How `nauvim-core` uses the `register` argument is unspecified.
+For copying, `nauvim-plugin` shall provide the `clipboard.copy` function and clipboard provider specified in 11.6. On receiving a valid copy notification permitted by 11.2.8, `nauvim-core` shall pass its `text` argument to the selected clipboard backend. How `nauvim-core` uses the `register` argument is unspecified.
 
 For GUI paste operations, `nauvim-core` shall obtain text from the selected clipboard backend and send that text to the host Neovim using `nvim_paste()` or an equivalent operation that delivers the text as paste input. See [1] and [18].
 
@@ -831,6 +833,8 @@ The requirements for `Host`, `Clipboard` and `SshConf` shall be as specified in 
 
 ### 8.3 Host configuration and local host designation
 
+#### 8.3.1 Host entries and local host selection
+
 `Host` shall have the following type:
 
 ```text
@@ -844,13 +848,66 @@ Host := {
 
 `SshHostConf` shall follow 8.4. The types, resolution and defaults for `nvim` and `socket` shall follow 8.7.
 
-The `policies` field shall belong to the individual host entry. `Policies` denotes its Lua table type; the definition of that type, setting meanings and default policy remain to be specified in Annex B.
+The `policies` field shall belong to the individual host entry and shall follow 8.3.2.
 
 A configured host entry without SSH settings shall designate a host Neovim running in the client environment.
 
 Specifically, if `config.hosts[X]` exists and `config.hosts[X].ssh == nil`, Nauvim shall select a local host Neovim. This condition shall be evaluated before applying the SSH host-resolution procedure in 8.5 to a requested host.
 
 For lookup of an explicitly supplied host name `X`, the absence of `config.hosts[X]` shall not designate a local host. In that case, Nauvim shall resolve `X` through the OpenSSH configuration source in accordance with 8.5. Selection of the default Host under 8.2.1 shall directly select its default local specification and shall not constitute lookup of an absent host name.
+
+<a id="annex-b--matters-requiring-further-specification"></a>
+
+#### 8.3.2 Host-specific security policies
+
+`Policies` shall be a Lua table of the following shape:
+
+```text
+Policies := {
+    plugin: {
+        filesystem: { copy: bool | nil } | nil,
+        http: {
+            serve_file: bool | nil,
+            open_webview: {
+                origins: list[string] | "all" | nil,
+                served_files: bool | nil,
+            } | nil,
+        } | nil,
+        local_forward: {
+            tcp: list[TcpForwardPolicyEntry] | "all" | nil,
+            socket: list[SocketForwardPolicyEntry] | "all" | nil,
+        } | nil,
+        clipboard: { copy: bool | nil } | nil,
+    } | nil,
+}
+
+TcpForwardPolicyEntry := {
+    client_port: u16,
+    host_addr: string,
+    host_port: u16,
+}
+
+SocketForwardPolicyEntry := {
+    client_socket_path: string,
+    host_socket_path: string,
+}
+```
+
+An omitted, nil or empty `policies` table shall grant no permissions. An omitted or nil policy field shall grant no permission through that field. These defaults shall also apply to the default Host specified in 8.2.1 and to a destination resolved solely through OpenSSH because it has no entry in `hosts`.
+
+Nauvim shall validate policy keys and values against this subclause when loading the client configuration, including for host entries that are not selected. Unknown keys, invalid values and missing required fields in a list entry shall be configuration-validation errors under 8.1.2.
+
+`plugin.filesystem.copy = true` shall permit `filesystem.copy` into the process temporary directory. `plugin.http.serve_file = true` shall permit `http.serve_file` from that directory. `plugin.clipboard.copy = true` shall permit host-initiated writes through `clipboard.copy` to the client clipboard. A Boolean value of `false` shall grant no permission.
+
+`plugin.http.open_webview.origins` shall permit access to origins in the list, or to every HTTP(S) origin if its value is `"all"`. Each list entry shall specify a single origin using a string of the form `scheme://host` or `scheme://host:port`, with scheme `http` or `https`. Nauvim shall compare origins by scheme, host and effective port in accordance with RFC 9110, 4.3.1. A path, query, fragment or user information shall not be part of a list entry.
+
+`plugin.http.open_webview.served_files = true` shall also permit the origins of active `http.serve_file` servers started by the same attachment. Each such origin shall use the server's scheme, IPv4 loopback address and bound port, including when the operating system assigned the port. Nauvim shall evaluate the origin permission for the URL supplied to `http.open_webview` and for top-level navigation as specified in 11.5.3.
+
+`plugin.local_forward.tcp` shall permit `local-forward.open_tcp` requests that match a list entry exactly by `client_port`, `host_addr` and `host_port`, or every valid `local-forward.open_tcp` request if its value is `"all"`. The port ranges shall follow 11.3.1. A `client_port` of `0` in an entry shall match a request for an operating-system-assigned port.
+
+`plugin.local_forward.socket` shall permit `local-forward.open_socket` requests that match a list entry exactly, or every valid `local-forward.open_socket` request if its value is `"all"`. In a list entry, `client_socket_path` shall be relative to the process temporary directory and `host_socket_path` shall be an absolute POSIX path. For list matching, Nauvim shall compare the client path obtained after the checks in 11.2.6, expressed relative to the process temporary directory, and the absolute host path as supplied in the request.
+
+Permission under this subclause shall remain subject to the applicable method requirements in Clause 11, including URL scheme validation and client path confinement.
 
 ### 8.4 Native SSH host settings
 
@@ -1022,7 +1079,7 @@ When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the f
 
 `nauvim-core` should interpret and apply that source in a manner that approximates OpenSSH behaviour as closely as practicable, subject to the explicit requirements of this document, including 8.5.6. The concrete parsing, selection and application of settings inherited from that source are unspecified. This document does not require a correct or complete implementation of OpenSSH configuration-file syntax or semantics, or equivalent host-resolution results. Conformance of the SSH client used internally by Nauvim to the OpenSSH client is outside the scope of this document.
 
-The native Lua input rules, including field types, literal-name matching and the absence of a native `Include` directive, do not define the interpretation of the OpenSSH source. The native table merge in 8.5.2 does not prescribe how OpenSSH-derived settings are inherited. Annex C provides informative correspondences between `SshHostConf` fields and OpenSSH directives, illustrating inheritance of some or all configured values or OpenSSH default values without requiring a particular selection or application method.
+The native Lua input rules, including field types, literal-name matching and the absence of a native `Include` directive, do not define the interpretation of the OpenSSH source. The native table merge in 8.5.2 does not prescribe how OpenSSH-derived settings are inherited. Annex B provides informative correspondences between `SshHostConf` fields and OpenSSH directives, illustrating inheritance of some or all configured values or OpenSSH default values without requiring a particular selection or application method.
 
 If an error occurs while reading or processing the required OpenSSH configuration source, or the required host settings cannot be obtained, host resolution shall fail and return the error to its caller. Nauvim shall not continue by using only the native table, substituting an empty configuration, selecting another configuration file, or relying on built-in connection defaults as a fallback for that error.
 
@@ -1289,9 +1346,9 @@ UI-specific options shall not override the requirements of this document.
 
 ### 8.11 Other configuration details
 
-Annex A illustrates the configuration model, including client information, host entries, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
+Annex A illustrates the configuration model, including client information, host entries, security policies, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
 
-Configuration details that remain to be specified shall be distinguished from details expressly designated as unspecified or implementation-dependent. The matters still requiring specification are listed in Annex B.
+Configuration details that remain to be specified shall be distinguished from details expressly designated as unspecified or implementation-dependent.
 
 ## 9 Build-time features and dependencies
 
@@ -1574,6 +1631,14 @@ Differences caused by events outside `nauvim-core` shall not be subject to this 
 
 Handle lookup for each invocation shall follow 11.2.2. The idempotency requirement shall not introduce an additional resource-selection condition based on the session of creation or historical allocation identity.
 
+#### 11.2.8 Host-specific policy checks
+
+For `filesystem.copy`, `http.serve_file`, `http.open_webview`, `local-forward.open_tcp`, `local-forward.open_socket` and `clipboard.copy`, `nauvim-core` shall apply the policy in 8.3.2 for the host selected for the receiving UI attachment before allocating a resource handle or performing the operation. It shall apply the client-ID checks in 11.2.5 first. For an RPC request, the order of argument validation and policy checking is unspecified. Any argument interpretation required for matching a policy entry shall still apply.
+
+If the policy does not permit the operation, Nauvim shall neither allocate a resource handle nor perform the operation. For an RPC request, Nauvim shall return a request error, corresponding to `(nil, err)` in Lua. For an RPC notification, Nauvim shall report a Nauvim error and shall send no RPC response.
+
+Handle queries, `clear` notifications and lifecycle cleanup shall follow their existing resource rules regardless of these policies. The policies shall not apply to `http.focus_webview` or to `client` methods. GUI paste shall follow 7.8.
+
 ### 11.3 Local forwarding
 
 #### 11.3.1 Opening a TCP forward
@@ -1800,7 +1865,7 @@ nauvim-plugin::http.serve_file({
 
 This function shall issue an RPC request.
 
-Within the RPC request, Nauvim shall first interpret and validate `client_file` in accordance with 11.2.6. Before starting the server, Nauvim shall also verify that:
+For argument validation, Nauvim shall first interpret and validate `client_file` in accordance with 11.2.6. Before starting the server, Nauvim shall also verify that:
 
 - `client_file` exists in the client environment;
 - its metadata identifies a regular file, a directory, or a symbolic link resolving to a regular file or directory;
@@ -1898,7 +1963,9 @@ The `focus` and `focusable` fields shall each default to `true` when omitted or 
 
 The meaning of focus is UI-dependent. A window opened with `focusable = false` shall not receive focus. If both `focus` and `focusable` are true, Nauvim shall focus the window immediately after it opens. Otherwise, Nauvim shall skip automatic focus. In particular, `focus = true` together with `focusable = false` shall be accepted without a validation error for that combination.
 
-For a request that passes argument validation, a `grid` identifier that does not identify an existing grid shall result in a no-effect operation: Nauvim shall not create a GUI window or initiate access to `url` for that operation.
+The following grid and position rules shall apply after argument validation and the policy check in 11.2.8 succeed.
+
+If `grid` does not identify an existing grid, Nauvim shall neither create a GUI window nor initiate access to `url` for that operation.
 
 Nauvim is not required to check whether a position whose four numeric values satisfy the required range fits within the actual grid. If the grid exists and those values are within range but the position or dimensions extend beyond the grid, behaviour is undefined.
 
@@ -1913,6 +1980,8 @@ The method name does not require the implementation to use a WebView. A WebView 
 Mouse interaction in the opened window shall be governed by 10.1.
 
 Resolution of the URL and its host name, where applicable, shall take place in the client environment through the presentation component used for that window.
+
+Nauvim shall apply the origin permission in 8.3.2 to each top-level navigation in that window, including each redirect target, using the policy of the attachment that requested the window. If a navigation target is not permitted, Nauvim shall prevent access to that target and report a Nauvim error.
 
 URLs containing fragment identifiers shall be supported as specified in 11.5.5.7.
 
@@ -2092,7 +2161,7 @@ The `text` field shall be a single string satisfying 11.1 and representing singl
 
 `nauvim-core` shall validate these arguments in accordance with 11.2 and 11.2.5 before passing `text` to the clipboard backend. If either argument is invalid, it shall not pass the text to the backend.
 
-For a valid notification, `nauvim-core` shall pass `text` to the selected clipboard backend as specified in 7.8. How it uses `register` is unspecified.
+For a valid notification permitted by 11.2.8, `nauvim-core` shall pass `text` to the selected clipboard backend as specified in 7.8. How it uses `register` is unspecified.
 
 The notification shall produce no RPC response. The function shall return `nil`; its return shall not indicate completion of the backend operation.
 
@@ -2238,7 +2307,23 @@ return {
                 identities_only = true,
             },
 
-            policies = {},
+            policies = {
+                plugin = {
+                    filesystem = { copy = true },
+                    http = {
+                        serve_file = true,
+                        open_webview = {
+                            served_files = true,
+                            origins = { "https://docs.example.test" },
+                        },
+                    },
+                    local_forward = {
+                        tcp = {
+                            { client_port = 0, host_addr = "127.0.0.1", host_port = 8080 },
+                        },
+                    },
+                },
+            },
 
             socket = function(host)
                 return host.project_dirs.runtime_dir
@@ -2269,7 +2354,9 @@ The remote entry uses functions whose `host` parameter is a `HostInfo` obtained 
 
 Both entries derive their socket names from the client hostname and client-side user name. The remote socket function combines that client-derived name with a host-side directory. The concrete socket-path derivation remains unspecified, subject to the ownership and rediscovery requirements in 6.2.
 
-The example also illustrates host-specific policy settings, global SSH file locations and automatic clipboard-backend detection. The top-level `clipboard = "auto"` explicitly selects the default backend-selection mode. The global SSH path defaults are specified in 8.9. Empty policy tables do not establish additional defaults or selection rules.
+The local entry's empty `policies` table grants no permissions. The remote entry permits copying and serving files through the process temporary directory. It permits opening Webview windows for its attachment's active file servers and for the origin `https://docs.example.test`. It also permits TCP forwarding to `127.0.0.1:8080` in the host environment when the request asks for an operating-system-assigned client port.
+
+The top-level `clipboard = "auto"` explicitly selects the default backend-selection mode. The global SSH path defaults are specified in 8.9.
 
 For `"my-host"`, the SSH lookup name is `"my-host.com"`. The example contains no native SSH entry with that name, so resolution reads `ssh.config` for `"my-host.com"` and uses it for supplementation under 8.5.4, preserving the explicitly supplied SSH fields. The concrete inheritance of OpenSSH-derived settings is unspecified. An error in that required OpenSSH-source operation fails resolution. The example does not designate a fallback for a missing or unreadable SSH configuration file.
 
@@ -2452,27 +2539,30 @@ return {
 
 Here, `nauvim-core` selects `ui_opts["some-alias"]` regardless of the supplied UI implementation ID. This allows a user-chosen key when UI implementations use conflicting IDs. The empty dictionary's interpretation is defined by the running UI implementation's schema. Removing the `"some-alias"` entry or setting it to nil also results in an empty dictionary; it does not cause lookup using the UI implementation ID.
 
-## Annex B — Matters requiring further specification
+### A.10 Unrestricted origins and forwarding endpoints
+
+The following host-entry fragment permits every HTTP(S) origin and every forwarding endpoint accepted by the corresponding plugin methods:
+
+```lua
+policies = {
+    plugin = {
+        http = { open_webview = { origins = "all" } },
+        local_forward = { tcp = "all", socket = "all" },
+    },
+}
+```
+
+<a id="annex-c--openssh-directive-correspondences"></a>
+
+## Annex B — OpenSSH directive correspondences
 
 **(informative)**
 
-The matters in Table B.1 are not resolved by this draft. Their inclusion records open design decisions without selecting an implementation or adding requirements.
-
-**Table B.1 — Open design decisions**
-
-| Area | Matter to be specified |
-| --- | --- |
-| Security-policy configuration | Structure and meaning of host-specific policy settings, and handling of omitted or empty policy tables under 7.6 and 8.3 |
-
-## Annex C — OpenSSH directive correspondences
-
-**(informative)**
-
-Table C.1 identifies the OpenSSH directives corresponding to the native `SshHostConf` fields. The directive names and meanings are documented in `ssh_config(5)` [22].
+Table B.1 identifies the OpenSSH directives corresponding to the native `SshHostConf` fields. The directive names and meanings are documented in `ssh_config(5)` [22].
 
 The table illustrates the intended direction of inheritance: for a setting absent from the native tables, an implementation can inherit some or all values configured by the corresponding directive, or some or all of its OpenSSH default values. The selection and method of inheritance are unspecified under 8.5.4. The table does not establish required directive coverage, value conversions or list-combination rules.
 
-**Table C.1 — Informative mapping to OpenSSH directives**
+**Table B.1 — Informative mapping to OpenSSH directives**
 
 | `SshHostConf` field | Corresponding OpenSSH directive |
 | --- | --- |
