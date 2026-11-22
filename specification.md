@@ -2336,6 +2336,8 @@ RPC handling by `nauvim-core` and GUI window creation and focusing by `nauvim` s
 
 The method name does not require the implementation to use a WebView. A WebView or another presentation component can provide the required access to `url`.
 
+When creating the window, Nauvim shall enable any available settings of the presentation component that allow the user to open developer tools or a developer console. Nauvim shall open the window with the developer tools and console hidden. The user can open them afterwards using the mechanism supported by the presentation component.
+
 Mouse interaction in the opened window shall be governed by 10.1.
 
 Resolution of the URL and its host name, where applicable, shall take place in the client environment through the presentation component used for that window.
