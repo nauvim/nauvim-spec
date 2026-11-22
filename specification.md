@@ -1797,7 +1797,7 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 | `nauvim-plugin::filesystem.clear` | Notification | `nauvim-plugin/filesystem.clear` | `client_id, handle` |
 | `nauvim-plugin::http.serve_file` | Request | `nauvim-plugin/http.serve_file` | `client_id, client_file, client_port, https, http2` |
 | `nauvim-plugin::http.get_port` | Request | `nauvim-plugin/http.get_port` | `client_id, handle` |
-| `nauvim-plugin::http.open_webview` | Request | `nauvim-plugin/http.open_webview` | `client_id, url, position, focus, focusable` |
+| `nauvim-plugin::http.open_webview` | Request | `nauvim-plugin/http.open_webview` | `client_id, url, position, focus, focusable, close_on_blur` |
 | `nauvim-plugin::http.focus_webview` | Notification | `nauvim-plugin/http.focus_webview` | `client_id, handle` |
 | `nauvim-plugin::http.clear` | Notification | `nauvim-plugin/http.clear` | `client_id, handle` |
 | `nauvim-plugin::clipboard.copy` | Notification | `nauvim-plugin/clipboard.copy` | `client_id, register, text` |
@@ -2287,6 +2287,7 @@ nauvim-plugin::http.open_webview({
     position: WebviewPosition,
     focus: bool | nil,
     focusable: bool | nil,
+    close_on_blur: bool | nil,
 }) -> (ret, err)
 ```
 
@@ -2312,9 +2313,11 @@ The upper-left corner of the grid shall be `{ top = 0, left = 0 }`. Increasing `
 
 Each of `top`, `left`, `height` and `width` shall be an integer from 0 to 65535, inclusive. Nauvim shall validate these four values as part of the RPC request and return a request error for a value that does not satisfy this requirement.
 
-The `focus` and `focusable` fields shall each default to `true` when omitted or nil. `nauvim-plugin` shall encode each omitted field as nil in its position in the RPC argument array. Nauvim shall return a request error for a `focus` or `focusable` value other than a Boolean or nil.
+When omitted or nil, `focus` and `focusable` shall each default to `true`, and `close_on_blur` shall default to `false`. `nauvim-plugin` shall encode each of these fields as nil in its position in the RPC argument array when omitted. Nauvim shall return a request error if any of these fields has a value other than a Boolean or nil.
 
 The meaning of focus is UI-dependent. A window opened with `focusable = false` shall not receive focus. If both `focus` and `focusable` are true, Nauvim shall focus the window immediately after it opens. Otherwise, Nauvim shall skip automatic focus. In particular, `focus = true` together with `focusable = false` shall be accepted without a validation error for that combination.
+
+If `close_on_blur` is `true` and the window loses focus, Nauvim shall immediately close the window using the cleanup specified for that window by `http.clear` in 11.5.4.
 
 The following grid and position rules shall apply after argument validation and the policy check in 11.2.8 succeed.
 
