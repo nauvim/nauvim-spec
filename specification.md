@@ -859,9 +859,9 @@ This no-effect rule shall take precedence over method-specific validation and op
 
 ### 7.4 GUI operations
 
-When HTTP plugin functionality is enabled, `nauvim-plugin` shall provide `http.open_webview` (11.5.3) and `http.focus_webview` (11.5.6). It shall transmit the corresponding RPC request and notification, respectively, to `nauvim-core`.
+When HTTP plugin functionality is enabled, `nauvim-plugin` shall provide `http.open_webview` (11.5.3), `http.focus_webview` (11.5.6) and `http.navigate_webview` (11.5.7). It shall transmit the `http.open_webview` RPC request and the `http.focus_webview` and `http.navigate_webview` RPC notifications to `nauvim-core`.
 
-`nauvim-core` shall process the request and notification and arrange creation and focusing of the requested GUI window through the UI backend. `nauvim` shall be responsible for creating and focusing the window and shall determine how those operations are performed.
+`nauvim-core` shall process these RPCs and arrange window creation, focusing and navigation through the UI backend. `nauvim` shall be responsible for performing these GUI operations and shall determine how they are performed.
 
 `nauvim` shall be responsible for creating and managing GUI windows and GUI tabs. GUI windows and GUI tabs shall be distinguished from Neovim windows and Neovim tabpages.
 
@@ -895,7 +895,7 @@ The restriction mechanism should apply to access to client resources, including 
 
 When the corresponding functionality is enabled, Nauvim shall provide the filesystem interface in 11.4 and the HTTP interface in 11.5.
 
-The filesystem interface copies files from the host environment to the client environment. The HTTP interface serves client-side files and opens GUI windows that access HTTP(S) URLs.
+The filesystem interface copies files from the host environment to the client environment. The HTTP interface serves client-side files and opens GUI windows that can navigate to HTTP(S) URLs.
 
 The `client_file` input fields of `filesystem.copy` and `http.serve_file` shall share the process temporary directory as their path base, in accordance with 11.2.6.
 
@@ -1799,6 +1799,7 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 | `nauvim-plugin::http.get_port` | Request | `nauvim-plugin/http.get_port` | `client_id, handle` |
 | `nauvim-plugin::http.open_webview` | Request | `nauvim-plugin/http.open_webview` | `client_id, url, position, focus, focusable, close_on_blur` |
 | `nauvim-plugin::http.focus_webview` | Notification | `nauvim-plugin/http.focus_webview` | `client_id, handle` |
+| `nauvim-plugin::http.navigate_webview` | Notification | `nauvim-plugin/http.navigate_webview` | `client_id, handle, url, replace_history, focus` |
 | `nauvim-plugin::http.clear` | Notification | `nauvim-plugin/http.clear` | `client_id, handle` |
 | `nauvim-plugin::clipboard.copy` | Notification | `nauvim-plugin/clipboard.copy` | `client_id, register, text` |
 | `nauvim-plugin::client.connect` | Notification | `nauvim-plugin/client.connect` | `client_id, host` |
@@ -1955,6 +1956,8 @@ Handle lookup for each invocation shall follow 11.2.2. The idempotency requireme
 For `filesystem.copy`, `http.serve_file`, `http.open_webview`, `local-forward.open_tcp`, `local-forward.open_socket` and `clipboard.copy`, `nauvim-core` shall apply the policy in 8.3.2 for the host selected for the receiving UI attachment before allocating a resource handle or performing the operation. It shall apply the client-ID checks in 11.2.5 first. For an RPC request, the order of argument validation and policy checking is unspecified. Any argument interpretation required for matching a policy entry shall still apply.
 
 If the policy does not permit the operation, Nauvim shall neither allocate a resource handle nor perform the operation. For an RPC request, Nauvim shall return a request error, corresponding to `(nil, err)` in Lua. For an RPC notification, Nauvim shall report a Nauvim error and shall send no RPC response.
+
+The origin policy check for `http.navigate_webview` shall follow 11.5.7.
 
 Handle queries, `clear` notifications and lifecycle cleanup shall follow their existing resource rules regardless of these policies. The policies shall not apply to `http.focus_webview` or to `client` methods. GUI paste shall follow 7.8.
 
@@ -2496,7 +2499,7 @@ NOTE 2 Unicode normalization is distinct from the URL/URI reference-resolution a
 
 URLs for resources served by `http.serve_file` shall support fragment identifiers in accordance with RFC 3986, 3.5.
 
-The fragment component shall be excluded from the HTTP target URI and from the filesystem target used by the server, in accordance with RFC 9110, 7.1. When such a URL is opened through `http.open_webview`, the presentation component shall preserve and process the fragment in accordance with the applicable representation semantics.
+The fragment component shall be excluded from the HTTP target URI and from the filesystem target used by the server, in accordance with RFC 9110, 7.1. When accessing such a URL through `http.open_webview` or `http.navigate_webview`, the presentation component shall preserve and process the fragment in accordance with the applicable representation semantics.
 
 EXAMPLE For `/a%23b.html#section`, the server-side path identifies `a#b.html` beneath a directory serving root. The fragment identifier `section` is processed by the client and is not appended to the filesystem path.
 
@@ -2515,6 +2518,39 @@ This function shall issue an RPC notification and return `nil`. The notification
 Nauvim shall look up `handle` as specified in 11.2.2. If it identifies an open window created by `http.open_webview` with `focusable = true`, Nauvim shall move focus to that window, with GUI responsibilities as specified in 7.4. If it identifies no such open window, including a window opened with `focusable = false`, the notification shall have no effect and Nauvim shall report no error.
 
 If moving focus fails, Nauvim shall report a Nauvim error and leave the window open. The failed operation shall have no other effect.
+
+<a name="navigate-webview"></a>
+
+#### 11.5.7 Navigating an open Webview window
+
+**Signature**
+
+```text
+nauvim-plugin::http.navigate_webview({
+    handle: int,
+    url: string,
+    replace_history: bool | nil,
+    focus: bool | nil,
+})
+```
+
+This function shall issue an RPC notification and return `nil`. The notification shall produce no RPC response. The no-effect rules in 7.3 and 11.2.5 shall apply.
+
+When omitted or nil, `replace_history` and `focus` shall each default to `false`. `nauvim-plugin` shall encode each omitted field as nil in its position in the RPC argument array. If either field has a value other than a Boolean or nil, Nauvim shall report a Nauvim error and perform no navigation.
+
+If `url` is malformed or its scheme is neither `http` nor `https`, Nauvim shall report a Nauvim error and perform no navigation.
+
+Nauvim shall look up `handle` as specified in 11.2.2 and evaluate the window's availability when it processes the notification. If the handle does not identify an open window created by `http.open_webview`, or if the window cannot navigate at that time, Nauvim shall report a Nauvim error and immediately discard the navigation request. This requirement shall also apply when window creation is still pending. Nauvim shall neither wait for the window to become available nor defer navigation.
+
+Nauvim shall apply the top-level navigation policy in 11.5.3 to `url` and each redirect target, using the policy of the attachment that requested the window. If the window is available and `url` is valid and permitted, Nauvim shall start top-level navigation to `url` in that window through the UI backend as specified in 7.4, subject to the idempotency requirements in 11.2.7.
+
+If `replace_history` is `true`, Nauvim shall replace the current history entry as part of navigation. If `replace_history` is `false`, Nauvim shall use the presentation component's normal history behaviour.
+
+If `focus` is `true` and the window was opened with `focusable = true`, Nauvim shall request focus when the presentation component accepts the navigation. Otherwise, Nauvim shall skip the focus request.
+
+Nauvim shall report each failure to perform a requested history replacement or focus change as a Nauvim error in accordance with 11.2.3.
+
+If the presentation component rejects the navigation or reports a navigation failure, Nauvim shall report a Nauvim error in accordance with 11.2.3 and leave the window open in the state left by the failed navigation. Nauvim shall not restore the previous URL or window state.
 
 <a name="clipboard-provider"></a>
 
