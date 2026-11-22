@@ -505,6 +505,8 @@ Nauvim shall support starting a host Neovim in the client environment. When SSH 
 
 Nauvim shall start the host Neovim with `--headless` and `--listen` followed by the resolved socket setting. The required placement of these arguments shall follow 8.7.2.
 
+`nauvim-core` shall set `NAUVIM_CONNECTION` for the host Neovim at launch as specified in 8.7.4.
+
 If host Neovim startup fails, Nauvim shall apply the connection-failure procedure in 6.9.
 
 <a name="session-ownership-and-reuse"></a>
@@ -1452,7 +1454,7 @@ Nauvim shall append the following three arguments immediately after the configur
 
 Here, `socket` shall be the value obtained by resolving the selected host's `socket` setting under 8.7.1. For a string-valued `nvim` specification, the configured argument sequence shall be treated as empty for this purpose. This rule shall apply to directly supplied values and function results, and to both direct Neovim programs and wrapper programs, for local execution and execution through SSH.
 
-Subject to this required argument suffix and the socket-argument requirements in 8.7.3, the concrete expansion and execution interpretation of `prog`, `args` and `env` are unspecified for both local execution and execution through SSH. The same qualification shall apply to the concrete expansion and execution interpretation of a string-valued `nvim` specification.
+Subject to this required argument suffix, the socket-argument requirements in 8.7.3 and the launch environment requirements in 8.7.4, the concrete expansion and execution interpretation of `prog`, `args` and `env` are unspecified for both local execution and execution through SSH. The same qualification shall apply to the concrete expansion and execution interpretation of a string-valued `nvim` specification.
 
 Nauvim shall not validate program-path interpretability in advance. Launch failures shall be determined from the errors reported by the execution mechanism and handled in accordance with 6.1.
 
@@ -1473,6 +1475,20 @@ EXAMPLE The socket value `"spaced socket.sock"` is one argument, `"spaced socket
 When execution uses SSH, Nauvim shall escape the socket value correctly so that the host environment's shell interprets it as one argument.
 
 The effect of that escaping on shell-specific expressions, including `~` and variable expansion, is unspecified.
+
+<a name="host-launch-environment"></a>
+
+#### 8.7.4 Host launch environment
+
+In the resolved program's launch environment, `nauvim-core` shall set `NAUVIM_CONNECTION` to `local` for local execution or `ssh` for execution through SSH. If the resolved program is a wrapper, it shall pass this value unchanged to the host Neovim. The value shall be available in the host Neovim's process environment at startup.
+
+The value set by `nauvim-core` shall take precedence over any inherited value and any value supplied by the Nauvim Lua configuration specified in 8.1, including an entry for `NAUVIM_CONNECTION` in `NvimProg.env`.
+
+EXAMPLE A host Neovim's `init.lua` can test for the presence of the launch marker using `os.getenv()`. See [9].
+
+```lua
+local launched_by_nauvim = os.getenv("NAUVIM_CONNECTION") ~= nil
+```
 
 <a name="clipboard-backend-configuration"></a>
 
@@ -2870,7 +2886,7 @@ For the shell-wrapper example, the corresponding sequence is:
 { "-c", "some wrapper $@", "nvim", "--headless", "--listen", socket }
 ```
 
-These examples illustrate configuration values and the required argument suffix. Subject to that suffix and the socket-argument requirements, their concrete expansion and execution interpretation, including the handling of the shell expression and environment entries, are unspecified as stated in 8.7.2.
+These examples illustrate configuration values and the required argument suffix. Their concrete expansion and execution interpretation, including the handling of the shell expression and environment entries, are subject to 8.7.2 to 8.7.4.
 
 <a name="example-clipboard-backend-configuration"></a>
 
