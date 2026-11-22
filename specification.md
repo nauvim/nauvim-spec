@@ -35,7 +35,7 @@ The following external documents apply to the provisions that explicitly referen
 - IETF, [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html), June 2022.
 - IETF, [RFC 9113: HTTP/2](https://www.rfc-editor.org/rfc/rfc9113.html), June 2022.
 
-Other supporting technical documents are listed in the Bibliography. The OpenSSH configuration guidance in 8.5.4 and Annex B uses `ssh_config(5)` [22] as an informative reference.
+Other supporting technical documents are listed in the Bibliography. The OpenSSH configuration guidance in 8.5.4 and Annex B uses `ssh_config(5)` [21] as an informative reference.
 
 <a name="terms-and-definitions"></a>
 
@@ -317,7 +317,7 @@ forwarding arrangement that accepts connections at a listening endpoint in the c
 
 Note 1 to entry: A local forward between TCP ports is also referred to as a local port forward. The `local-forward` interface also supports Unix domain sockets.
 
-Note 2 to entry: For forwarding through SSH, each accepted connection uses a forwarding channel. Forwarding channels are independent of SSH session channels. See [6] and [11].
+Note 2 to entry: For forwarding through SSH, each accepted connection uses a forwarding channel. Forwarding channels are independent of SSH session channels. See [6] and [10].
 
 <a name="capability"></a>
 
@@ -456,7 +456,7 @@ It shall determine the concrete methods for creating GUI windows and GUI tabs an
 
 `nauvim` shall provide its UI implementation ID to `nauvim-core` before UI-specific options are selected under 8.10. The ID shall satisfy the string requirements for keys in `ui_opts` specified in 8.10.1. Each implementation shall document its ID.
 
-Subject to those string requirements, the ID's format is unspecified. The ID should follow reverse domain name notation, with domain-name components written in reverse order. See [24], Section 3.
+Subject to those string requirements, the ID's format is unspecified. The ID should follow reverse domain name notation, with domain-name components written in reverse order. See [23], Section 3.
 
 The initial default implementation shall use Flutter.
 
@@ -909,7 +909,7 @@ When clipboard functionality is enabled, `nauvim-core` shall support copying tex
 
 For copying, `nauvim-plugin` shall provide the `clipboard.copy` function and clipboard provider specified in 11.6. On receiving a valid copy notification permitted by 11.2.8, `nauvim-core` shall pass its `text` argument to the selected clipboard backend. How `nauvim-core` uses the `register` argument is unspecified.
 
-For GUI paste operations, `nauvim-core` shall obtain text from the selected clipboard backend and send that text to the host Neovim using `nvim_paste()` or an equivalent operation that delivers the text as paste input. See [1] and [18].
+For GUI paste operations, `nauvim-core` shall obtain text from the selected clipboard backend and send that text to the host Neovim using `nvim_paste()` or an equivalent operation that delivers the text as paste input. See [1] and [17].
 
 The GUI paste operation shall not obtain text through the clipboard provider's `paste` callbacks. Those callbacks shall have the behaviour specified in 11.6.2.
 
@@ -959,7 +959,7 @@ The search-path additions specified in this subclause shall be limited to these 
 
 NOTE 1 Lua module-file search paths contain filename templates separated by semicolons. See [9].
 
-NOTE 2 These templates follow Neovim's local Lua-module layout and search order. See [21].
+NOTE 2 These templates follow Neovim's local Lua-module layout and search order. See [20].
 
 <a name="configuration-loading-failures"></a>
 
@@ -1757,7 +1757,7 @@ Each `nauvim-plugin` Lua function specified by a signature in this clause shall 
 
 Every string carried in a plugin RPC request, notification or response shall be a valid UTF-8 byte sequence. It shall not begin with `U+FEFF` (ZERO WIDTH NO-BREAK SPACE, UTF-8 bytes `EF BB BF`) and shall not contain `U+0000` (NUL, UTF-8 byte `00`). These requirements shall apply to each string at every nesting level, including string arguments, results, error values, mapping keys and clipboard data. Additional method-specific constraints shall also apply.
 
-NOTE `U+FEFF` has a valid UTF-8 encoding; its exclusion at the start of a string is a restriction of this interface. At the start of a UTF-8 stream, it can serve as an encoding signature, also called a byte order mark (BOM), but does not indicate byte order. See [23], Clause 6.
+NOTE `U+FEFF` has a valid UTF-8 encoding; its exclusion at the start of a string is a restriction of this interface. At the start of a UTF-8 stream, it can serve as an encoding signature, also called a byte order mark (BOM), but does not indicate byte order. See [22], Clause 6.
 
 These string requirements shall not apply to Lua error strings generated locally in the host Neovim that are not carried in a plugin RPC response.
 
@@ -2009,7 +2009,7 @@ The host-side destination path shall follow Neovim's path and current-directory 
 
 The successful `ret` shall be a resource handle for the forwarding operation. Completion of `bind(2)` before returning the handle is not guaranteed.
 
-For forwarding through SSH, each accepted connection shall be forwarded using an SSH channel of type `direct-streamlocal@openssh.com`. See [11].
+For forwarding through SSH, each accepted connection shall be forwarded using an SSH channel of type `direct-streamlocal@openssh.com`. See [10].
 
 <a name="forwarding-errors"></a>
 
@@ -2071,7 +2071,7 @@ All errors encountered in resolving the handle, waiting for binding or obtaining
 
 NOTE 1 The non-blocking requirement applies to Nauvim. The RPC response can remain pending while Nauvim processes other work.
 
-NOTE 2 A successful response reports successful client-side binding and the assigned port. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [15].
+NOTE 2 A successful response reports successful client-side binding and the assigned port. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [14].
 
 <a name="filesystem-api"></a>
 
@@ -2099,7 +2099,7 @@ Within the RPC request, Nauvim shall interpret and validate `client_file` in acc
 
 The successful `ret` shall be a resource handle associated with the copy operation and its client-side destination. Completion of the copy before returning the handle is not guaranteed.
 
-When the host is accessed through SSH, Nauvim shall use the SFTP subsystem for host-side file access, metadata retrieval, directory enumeration and symbolic-link inspection required by the copy operation. See [12].
+When the host is accessed through SSH, Nauvim shall use the SFTP subsystem for host-side file access, metadata retrieval, directory enumeration and symbolic-link inspection required by the copy operation. See [11].
 
 <a name="source-types-and-destination-replacement"></a>
 
@@ -2127,7 +2127,7 @@ The destination-type error requirements in Table 8 shall take precedence over th
 
 When an existing destination directory is replaced, Nauvim shall delete it recursively before copying the source directory. The operation shall replace the directory rather than merge the source into the existing directory.
 
-NOTE Source symbolic-link resolution copies the target's contents. It does not reproduce the source symbolic link as a client-side symbolic link. Relative symbolic-link resolution is described in [13].
+NOTE Source symbolic-link resolution copies the target's contents. It does not reproduce the source symbolic link as a client-side symbolic link. Relative symbolic-link resolution is described in [12].
 
 <a name="recursive-traversal-and-copy-errors"></a>
 
@@ -2143,7 +2143,7 @@ Insufficient permissions to read a source regular file, enumerate a source direc
 
 A failure to resolve or inspect a source symbolic-link target shall be handled as an error, rather than as an entry of an unsupported type to be ignored.
 
-NOTE Directory enumeration requires read access. Looking up entries and traversing directories requires search access, represented by execute permission for directories on the target Unix-like platforms. These access requirements are distinct from executing a regular file. See [13] and [14].
+NOTE Directory enumeration requires read access. Looking up entries and traversing directories requires search access, represented by execute permission for directories on the target Unix-like platforms. These access requirements are distinct from executing a regular file. See [12] and [13].
 
 <a name="clearing-a-copy-destination"></a>
 
@@ -2271,7 +2271,7 @@ All errors encountered in resolving the handle, waiting for binding or obtaining
 
 NOTE 1 The non-blocking requirement applies to Nauvim. The RPC response can remain pending while Nauvim processes other work.
 
-NOTE 2 A successful response reports successful binding and the assigned port. It does not indicate that HTTP request processing has begun. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [15].
+NOTE 2 A successful response reports successful binding and the assigned port. It does not indicate that HTTP request processing has begun. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [14].
 
 <a name="open-webview"></a>
 
@@ -2340,7 +2340,7 @@ For HTTPS access, the presentation component used by `open_webview` shall accept
 
 Except for this acceptance requirement, the public key infrastructure (PKI) and certificate-validation behaviour, including the handling of root and intermediate certificate authorities (CAs) and their certificates, are unspecified.
 
-NOTE The field name `url` describes the HTTP(S) resource to be accessed. URL terminology is described in [16].
+NOTE The field name `url` describes the HTTP(S) resource to be accessed. URL terminology is described in [15].
 
 <a name="clearing-an-http-server-or-window"></a>
 
@@ -2465,9 +2465,9 @@ Within these constraints, the server shall select the value most strongly recomm
 
 EXAMPLE `Access-Control-Allow-Origin: https://example.test:8443`
 
-NOTE 1 A serialized origin identifies the scheme, host and applicable port; it does not include a URL path. The CORS header syntax is described in [17].
+NOTE 1 A serialized origin identifies the scheme, host and applicable port; it does not include a URL path. The CORS header syntax is described in [16].
 
-NOTE 2 Selecting only explicitly trusted origins and avoiding unchecked reflection of the request's `Origin` value are security practices described in [20].
+NOTE 2 Selecting only explicitly trusted origins and avoiding unchecked reflection of the request's `Origin` value are security practices described in [19].
 
 <a name="path-characters-and-encoding"></a>
 
@@ -2554,7 +2554,7 @@ nauvim-plugin::clipboard.provider
 
 `nauvim-plugin` shall expose `require("nauvim-plugin.clipboard").provider` as a clipboard-provider table suitable for direct assignment to `vim.g.clipboard` in the host Neovim.
 
-The table shall conform to Neovim's clipboard-provider interface. Its `copy` and `paste` dictionaries shall each provide callbacks for both `"+"` and `"*"`. The callback argument and result contracts shall follow that interface. See [18].
+The table shall conform to Neovim's clipboard-provider interface. Its `copy` and `paste` dictionaries shall each provide callbacks for both `"+"` and `"*"`. The callback argument and result contracts shall follow that interface. See [17].
 
 The `copy` callbacks shall use `nauvim-plugin::clipboard.copy` to copy the supplied clipboard-register contents. How they use that function, including how they adapt Neovim's callback arguments to its input dictionary, is unspecified, subject to the requirements of the clipboard-provider interface and 11.6.1. The no-effect rule in 7.3 shall apply to the `copy` callbacks.
 
@@ -2618,7 +2618,7 @@ NOTE The concurrent-instance limitations in 6.7 apply independently of these des
 
 When handling `UILeave`, `nauvim-plugin` shall compare the event's channel ID with its stored channel ID. If they are equal, it shall set both the stored channel ID and the stored client ID to `nil`. Otherwise, it shall leave both stored identifiers unchanged.
 
-The event's channel ID shall be the `chan` value supplied by Neovim in `v:event`. See [19].
+The event's channel ID shall be the `chan` value supplied by Neovim in `v:event`. See [18].
 
 This document does not guarantee that `UILeave` occurs for every UI disconnection. Retention of a stale channel ID and its associated client ID when the corresponding event does not occur is permitted.
 
@@ -2967,7 +2967,7 @@ policies = {
 
 **(informative)**
 
-Table B.1 identifies the OpenSSH directives corresponding to the native `SshHostConf` fields. The directive names and meanings are documented in `ssh_config(5)` [22].
+Table B.1 identifies the OpenSSH directives corresponding to the native `SshHostConf` fields. The directive names and meanings are documented in `ssh_config(5)` [21].
 
 The table illustrates the intended direction of inheritance: for a setting absent from the native tables, an implementation can inherit some or all values configured by the corresponding directive, or some or all of its OpenSSH default values. The selection and method of inheritance are unspecified under 8.5.4. The table does not establish required directive coverage, value conversions or list-combination rules.
 
@@ -3008,32 +3008,30 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 
 [9] Lua.org. [Lua 5.4 Reference Manual](https://www.lua.org/manual/5.4/manual.html).
 
-[10] freedesktop.org. [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/).
+[10] OpenSSH. [Protocol extensions — Unix domain socket forwarding](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL), Section 2.4.
 
-[11] OpenSSH. [Protocol extensions — Unix domain socket forwarding](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL), Section 2.4.
+[11] IETF. [SSH File Transfer Protocol](https://www.ietf.org/archive/id/draft-ietf-secsh-filexfer-02.txt), Internet-Draft `draft-ietf-secsh-filexfer-02`. Informative description of SFTP operations. This specification does not select an SFTP version.
 
-[12] IETF. [SSH File Transfer Protocol](https://www.ietf.org/archive/id/draft-ietf-secsh-filexfer-02.txt), Internet-Draft `draft-ietf-secsh-filexfer-02`. Informative description of SFTP operations. This specification does not select an SFTP version.
+[12] Linux man-pages project. [path_resolution(7)](https://man7.org/linux/man-pages/man7/path_resolution.7.html).
 
-[13] Linux man-pages project. [path_resolution(7)](https://man7.org/linux/man-pages/man7/path_resolution.7.html).
+[13] Linux man-pages project. [opendir(3)](https://man7.org/linux/man-pages/man3/opendir.3.html).
 
-[14] Linux man-pages project. [opendir(3)](https://man7.org/linux/man-pages/man3/opendir.3.html).
+[14] OpenBSD. [getsockname(2)](https://man.openbsd.org/man2/getsockname.2).
 
-[15] OpenBSD. [getsockname(2)](https://man.openbsd.org/man2/getsockname.2).
+[15] WHATWG. [URL Standard](https://url.spec.whatwg.org/).
 
-[16] WHATWG. [URL Standard](https://url.spec.whatwg.org/).
+[16] WHATWG. [Fetch Standard — CORS protocol](https://fetch.spec.whatwg.org/#http-cors-protocol).
 
-[17] WHATWG. [Fetch Standard — CORS protocol](https://fetch.spec.whatwg.org/#http-cors-protocol).
+[17] Neovim. [Providers — Clipboard integration and paste](https://neovim.io/doc/user/provider/), help tags `provider-clipboard`, `g:clipboard`, `provider-paste` and `ui-paste`.
 
-[18] Neovim. [Providers — Clipboard integration and paste](https://neovim.io/doc/user/provider/), help tags `provider-clipboard`, `g:clipboard`, `provider-paste` and `ui-paste`.
+[18] Neovim. [Automatic commands — UILeave](https://neovim.io/doc/user/autocmd/#UILeave).
 
-[19] Neovim. [Automatic commands — UILeave](https://neovim.io/doc/user/autocmd/#UILeave).
+[19] OWASP. [HTML5 Security Cheat Sheet — Cross Origin Resource Sharing](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing).
 
-[20] OWASP. [HTML5 Security Cheat Sheet — Cross Origin Resource Sharing](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing).
+[20] Neovim. [Lua engine — Importing Lua modules](https://neovim.io/doc/user/lua/#lua-module-load).
 
-[21] Neovim. [Lua engine — Importing Lua modules](https://neovim.io/doc/user/lua/#lua-module-load).
+[21] OpenSSH. [ssh_config(5): OpenSSH client configuration file](https://man.openbsd.org/ssh_config).
 
-[22] OpenSSH. [ssh_config(5): OpenSSH client configuration file](https://man.openbsd.org/ssh_config).
+[22] IETF. [RFC 3629: UTF-8, a transformation format of ISO 10646](https://www.rfc-editor.org/rfc/rfc3629.html), Section 6.
 
-[23] IETF. [RFC 3629: UTF-8, a transformation format of ISO 10646](https://www.rfc-editor.org/rfc/rfc3629.html), Section 6.
-
-[24] IETF. [RFC 8252: OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.html#section-3), Section 3, definition of reverse domain name notation.
+[23] IETF. [RFC 8252: OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.html#section-3), Section 3, definition of reverse domain name notation.
