@@ -124,8 +124,10 @@ supporting references using the document's existing citation conventions.
 
 - Use the [release skill](.agents/skills/nauvim-release/SKILL.md) for a release
   or an individual follow-up stage.
-- Prepare releases on `release/vX.Y.Z` and set the same version in
-  `specification.md` and `README.md`. Leave PR merges to the maintainer.
+- Prepare releases on `release/vX.Y.Z`. Complete the terminology consistency
+  and ISO/IEC drafting checks before the version bump commit.
+- Set the same version in `specification.md` and `README.md` in that commit.
+  Leave PR merges to the maintainer.
 - Use `spec/vX.Y.Z` for follow-up PRs in the implementation repositories.
 
 ## Commit messages

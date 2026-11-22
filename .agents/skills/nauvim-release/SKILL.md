@@ -19,10 +19,24 @@ connector or an authenticated `gh` for GitHub operations.
 
 Look up the remote tag and the `release/vX.Y.Z` PR, including merged PRs. If the
 tag already exists, resolve it to its commit and verify the requested version
-in the tagged files. Otherwise, create or update the release PR on that branch,
-setting the version in `specification.md` and `README.md`. Check that the
-release diff contains the intended specification changes and that the version
-follows clause 5.4.
+in the tagged files. Otherwise, prepare the `release/vX.Y.Z` branch and compare
+its specification changes with the previous release tag. Complete both checks
+before committing the version bump.
+
+1. **Terminology consistency.** Check changed terms against their definitions
+   and related uses in `specification.md` and `type-notation.md`. Check that
+   component names, identifiers, and API terminology remain consistent.
+2. **ISO/IEC drafting style.** Apply the repository's
+   [drafting rules](../../../AGENTS.md#draft-in-the-established-specification-style).
+   Check clause structure and references, the strength of modal verbs, and the
+   placement of requirements in normative text.
+
+Commit any editorial fixes before the version bump. Preserve the specified
+behaviour and requirement strength. Then set the version in `specification.md`
+and `README.md` in a separate commit. Check that the release diff contains the
+intended changes and that the version follows clause 5.4. Create or update the
+release PR and record both checks there. When resuming, review changes made
+since the recorded checks.
 
 The **Tag specification release** workflow creates the tag after merge. If a
 merged release PR has no tag, check the workflow result. Its manual input
