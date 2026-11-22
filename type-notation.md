@@ -1,5 +1,7 @@
 # Nauvim — Type notation
 
+<a name="scope"></a>
+
 ## 1 Scope
 
 This supplement defines the abstract types and annotation syntax used in [the Nauvim specification](specification.md). Its requirements apply wherever that specification uses these notations. Interface-specific requirements, including value ranges, character encodings, field presence and error handling, shall also apply.
@@ -7,6 +9,8 @@ This supplement defines the abstract types and annotation syntax used in [the Na
 A type shall be one of the types defined below or a finite combination of them. Named types may refer to other named types, including recursively, as in the definition of `object`.
 
 The annotations are descriptive notation. They are not source code in a particular programming language.
+
+<a name="language-and-interface-bindings"></a>
 
 ## 2 Language and interface bindings
 
@@ -16,15 +20,23 @@ Memory representations and wire encodings may differ between bindings. The types
 
 Within the choices permitted below, numeric ranges and precision may differ between bindings when the differences are not significant in most normal uses of the interface. An explicit width or an interface-specific range shall take precedence over this permission. Numeric widths shall not, by themselves, prescribe a memory layout or wire encoding.
 
+<a name="scalar-and-byte-sequence-types"></a>
+
 ## 3 Scalar and byte-sequence types
+
+<a name="nil"></a>
 
 ### 3.1 `nil`
 
 `nil` denotes the absence of a value.
 
+<a name="bool"></a>
+
 ### 3.2 `bool`
 
 `bool` denotes a Boolean value, either `true` or `false`.
+
+<a name="int"></a>
 
 ### 3.3 `int`
 
@@ -34,6 +46,8 @@ Where signedness and width need to be specified, `i16`, `i32` and `i64` shall de
 
 An explicitly sized integer type shall specify the value range, rather than the binding's storage width. A binding may use a wider integer representation if it preserves that range.
 
+<a name="float"></a>
+
 ### 3.4 `float`
 
 `float` denotes a floating-point number with unspecified precision and is intended primarily for finite normal numbers. Where precision needs to be specified, `f32` and `f64` shall denote single-precision 32-bit and double-precision 64-bit floating-point numbers, respectively.
@@ -42,11 +56,15 @@ Floating-point representations and operations should conform to IEEE 754 [1]. Co
 
 Support for and handling of NaN, infinities (`inf` and `-inf`), signed zeros (`+0.0` and `-0.0`) and subnormal numbers are therefore unspecified.
 
+<a name="string"></a>
+
 ### 3.5 `string`
 
 `string` denotes a byte sequence representing text. A `string` shall be valid UTF-8, shall not contain NUL (`U+0000`) and shall not begin with `U+FEFF` (ZERO WIDTH NO-BREAK SPACE).
 
 The maximum supported length in bytes shall be represented by a signed or unsigned 32- or 64-bit integer. The choice may differ between bindings.
+
+<a name="bytes"></a>
 
 ### 3.6 `bytes`
 
@@ -54,13 +72,19 @@ The maximum supported length in bytes shall be represented by a signed or unsign
 
 The maximum supported length in bytes shall be represented by a signed or unsigned 32- or 64-bit integer. The choice may differ between bindings.
 
+<a name="composite-and-callable-types"></a>
+
 ## 4 Composite and callable types
+
+<a name="list"></a>
 
 ### 4.1 `list[T]`
 
 `list[T]` denotes a fixed-size, ordered sequence of elements of type `T`. A binding may represent it as a list, an array or another sequence type.
 
 The number of elements shall be fixed for a given value, but need not be determined at compile time. Different values of `list[T]` may have different lengths. The maximum supported number of elements shall be represented by a signed or unsigned 32- or 64-bit integer.
+
+<a name="dict"></a>
 
 ### 4.2 `dict[K, V]`
 
@@ -70,6 +94,8 @@ The number of entries shall be fixed for a given value, but need not be determin
 
 The data structure, algorithms and computational complexity of dictionary operations are unspecified.
 
+<a name="tuple"></a>
+
 ### 4.3 `(T1, ..., TN)`
 
 `(T1, ..., TN)` denotes a tuple of exactly `N` ordered components. Each component shall have the type specified at its position; the component types may differ.
@@ -77,6 +103,8 @@ The data structure, algorithms and computational complexity of dictionary operat
 Bindings are not required to represent or interpret a tuple as `list[T1 | ... | TN]`.
 
 Parentheses containing a single type without a comma shall group that type expression. `(T,)` shall denote a one-component tuple, and `()` shall denote an empty tuple.
+
+<a name="function"></a>
 
 ### 4.4 `func(T1, ..., TN) -> U`
 
@@ -90,6 +118,8 @@ func(HostInfo) -> (string | NvimProg)
 func(string) -> (int, bool)
 ```
 
+<a name="union"></a>
+
 ### 4.5 `T1 | ... | TN`
 
 `T1 | ... | TN` denotes the union of a finite number of types `T1` through `TN`. A value shall belong to at least one of those types. A binding should distinguish the alternative types either statically or dynamically, subject to the type-distinction requirement in Clause 2.
@@ -98,7 +128,7 @@ A union shall denote the same type after duplicate occurrences of any type are r
 
 EXAMPLE `T | U | T | T` denotes the same type as `T | U`.
 
-<a id="45-object"></a>
+<a name="object"></a>
 
 ### 4.6 `object`
 
@@ -110,7 +140,11 @@ object := nil | bool | int | float | string | list[object] | dict[string, object
 
 `bytes`, tuple types and function types are excluded from `object`, including within its lists and dictionaries.
 
+<a name="declarations-and-annotations"></a>
+
 ## 5 Declarations and annotations
+
+<a name="type-declarations"></a>
 
 ### 5.1 Type declarations
 
@@ -122,6 +156,8 @@ T := U
 
 This declares `T` as a name for `U`. The symbol `=` in value expressions shall not be interpreted as a type declaration.
 
+<a name="variables-and-function-signatures"></a>
+
 ### 5.2 Variables and function signatures
 
 A variable annotation shall use `name: T`. A named function signature shall annotate its arguments in the same way:
@@ -131,7 +167,9 @@ var: T
 function_name(arg1: T1, arg2: T2) -> U
 ```
 
-A dictionary shape may be written directly as a function argument's type. A signature may name the components of its result tuple, with their types and meanings defined in the accompanying text. In particular, the Nauvim Lua signatures use `-> (ret, err)` for the return convention specified in [11.2.1 of the main specification](specification.md#1121-lua-return-convention).
+A dictionary shape may be written directly as a function argument's type. A signature may name the components of its result tuple, with their types and meanings defined in the accompanying text. In particular, the Nauvim Lua signatures use `-> (ret, err)` for the return convention specified in [11.2.1 of the main specification](specification.md#lua-return-convention).
+
+<a name="dictionary-shapes"></a>
 
 ### 5.3 Dictionary shapes
 
@@ -149,6 +187,8 @@ Braces shall describe a dictionary by its named keys and their value types:
 `nested { ... }` shall be shorthand for `nested: { ... }`. Both forms describe a dictionary-valued field.
 
 Field-presence requirements, defaults and the treatment of omitted or nil fields shall follow the interface using the shape. A shape alone shall not define those rules.
+
+<a name="values-in-type-positions"></a>
 
 ### 5.4 Values in type positions
 
