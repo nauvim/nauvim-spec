@@ -678,9 +678,9 @@ This no-effect rule shall take precedence over method-specific validation and op
 
 ### 7.4 GUI operations
 
-When HTTP plugin functionality is enabled, `nauvim-plugin` shall provide the `http.open_webview` interface specified in 11.5.3 and shall transmit the corresponding RPC request to `nauvim-core`.
+When HTTP plugin functionality is enabled, `nauvim-plugin` shall provide `http.open_webview` (11.5.3) and `http.focus_webview` (11.5.6). It shall transmit the corresponding RPC request and notification, respectively, to `nauvim-core`.
 
-`nauvim-core` shall process that request and arrange creation of the requested GUI window through the UI backend. `nauvim` shall determine the concrete creation method and shall be responsible for actual GUI window creation.
+`nauvim-core` shall process the request and notification and arrange creation and focusing of the requested GUI window through the UI backend. `nauvim` shall be responsible for creating and focusing the window and shall determine how those operations are performed.
 
 `nauvim` shall be responsible for creating and managing GUI windows and GUI tabs. GUI windows and GUI tabs shall be distinguished from Neovim windows and Neovim tabpages.
 
@@ -1439,7 +1439,8 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 | `nauvim-plugin::filesystem.clear` | Notification | `nauvim-plugin/filesystem.clear` | `client_id, handle` |
 | `nauvim-plugin::http.serve_file` | Request | `nauvim-plugin/http.serve_file` | `client_id, client_file, client_port, https, http2` |
 | `nauvim-plugin::http.get_port` | Request | `nauvim-plugin/http.get_port` | `client_id, handle` |
-| `nauvim-plugin::http.open_webview` | Request | `nauvim-plugin/http.open_webview` | `client_id, url, position` |
+| `nauvim-plugin::http.open_webview` | Request | `nauvim-plugin/http.open_webview` | `client_id, url, position, focus, focusable` |
+| `nauvim-plugin::http.focus_webview` | Notification | `nauvim-plugin/http.focus_webview` | `client_id, handle` |
 | `nauvim-plugin::http.clear` | Notification | `nauvim-plugin/http.clear` | `client_id, handle` |
 | `nauvim-plugin::clipboard.copy` | Notification | `nauvim-plugin/clipboard.copy` | `client_id, register, text` |
 | `nauvim-plugin::client.connect` | Notification | `nauvim-plugin/client.connect` | `client_id, host` |
@@ -1863,8 +1864,12 @@ NOTE 2 A successful response reports successful binding and the assigned port. I
 **Signature**
 
 ```text
-nauvim-plugin::http.open_webview({ url: string, position: WebviewPosition })
-    -> (ret, err)
+nauvim-plugin::http.open_webview({
+    url: string,
+    position: WebviewPosition,
+    focus: bool | nil,
+    focusable: bool | nil,
+}) -> (ret, err)
 ```
 
 This function shall issue an RPC request.
@@ -1889,7 +1894,11 @@ The upper-left corner of the grid shall be `{ top = 0, left = 0 }`. Increasing `
 
 Each of `top`, `left`, `height` and `width` shall be an integer from 0 to 65535, inclusive. Nauvim shall validate these four values as part of the RPC request and return a request error for a value that does not satisfy this requirement.
 
-For a request that passes the required URL-scheme and position-value validation, a `grid` identifier that does not identify an existing grid shall result in a no-effect operation: Nauvim shall not create a GUI window or initiate access to `url` for that operation.
+The `focus` and `focusable` fields shall each default to `true` when omitted or nil. `nauvim-plugin` shall encode each omitted field as nil in its position in the RPC argument array. Nauvim shall return a request error for a `focus` or `focusable` value other than a Boolean or nil.
+
+The meaning of focus is UI-dependent. A window opened with `focusable = false` shall not receive focus. If both `focus` and `focusable` are true, Nauvim shall focus the window immediately after it opens. Otherwise, Nauvim shall skip automatic focus. In particular, `focus = true` together with `focusable = false` shall be accepted without a validation error for that combination.
+
+For a request that passes argument validation, a `grid` identifier that does not identify an existing grid shall result in a no-effect operation: Nauvim shall not create a GUI window or initiate access to `url` for that operation.
 
 Nauvim is not required to check whether a position whose four numeric values satisfy the required range fits within the actual grid. If the grid exists and those values are within range but the position or dimensions extend beyond the grid, behaviour is undefined.
 
@@ -1897,7 +1906,7 @@ For an existing grid and a position that fits within that grid, Nauvim shall ini
 
 Errors encountered during GUI window creation or access to `url` shall be reported as Nauvim errors in accordance with 11.2.3.
 
-RPC handling by `nauvim-core` and concrete window creation by `nauvim` shall follow the allocation of responsibilities in 7.4.
+RPC handling by `nauvim-core` and GUI window creation and focusing by `nauvim` shall follow the allocation of responsibilities in 7.4.
 
 The method name does not require the implementation to use a WebView. A WebView or another presentation component can provide the required access to `url`.
 
@@ -2047,6 +2056,20 @@ URLs for resources served by `http.serve_file` shall support fragment identifier
 The fragment component shall be excluded from the HTTP target URI and from the filesystem target used by the server, in accordance with RFC 9110, 7.1. When such a URL is opened through `http.open_webview`, the presentation component shall preserve and process the fragment in accordance with the applicable representation semantics.
 
 EXAMPLE For `/a%23b.html#section`, the server-side path identifies `a#b.html` beneath a directory serving root. The fragment identifier `section` is processed by the client and is not appended to the filesystem path.
+
+#### 11.5.6 Focusing an open Webview window
+
+**Signature**
+
+```text
+nauvim-plugin::http.focus_webview({ handle: int })
+```
+
+This function shall issue an RPC notification and return `nil`. The notification shall produce no RPC response.
+
+Nauvim shall look up `handle` as specified in 11.2.2. If it identifies an open window created by `http.open_webview` with `focusable = true`, Nauvim shall move focus to that window, with GUI responsibilities as specified in 7.4. If it identifies no such open window, including a window opened with `focusable = false`, the notification shall have no effect and Nauvim shall report no error.
+
+If moving focus fails, Nauvim shall report a Nauvim error and leave the window open. The failed operation shall have no other effect.
 
 ### 11.6 Clipboard provider
 

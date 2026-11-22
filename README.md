@@ -44,7 +44,7 @@ The [common rules](specification.md#112-common-rules) define `(ret, err)` result
 | --- | --- |
 | [`local-forward`](specification.md#113-local-forwarding) | Open TCP or Unix domain socket forwards, obtain an assigned TCP port and clear a forward. |
 | [`filesystem`](specification.md#114-filesystem-operations) | Copy host files into the client's temporary directory and cancel or remove copied resources. |
-| [`http`](specification.md#115-http-services-and-gui-access) | Serve files over HTTP(S), query the bound port and open a GUI window for an HTTP(S) URL. |
+| [`http`](specification.md#115-http-services-and-gui-access) | Serve files over HTTP(S), query the bound port and open or focus GUI windows for HTTP(S) URLs. |
 | [`clipboard`](specification.md#116-clipboard-provider) | Supply a Neovim clipboard provider backed by the client system clipboard. |
 | [`client`](specification.md#117-client-registration-rpc-destination-selection-and-session-switching) | Register the RPC destination, clear stored identifiers on `UILeave` and request a host switch. |
 
