@@ -120,6 +120,14 @@ supporting references using the document's existing citation conventions.
 - Keep technical details in `specification.md`. Update this file only when the
   user requests a change to the maintenance instructions.
 
+## Specification releases
+
+- Use the [release skill](.agents/skills/nauvim-release/SKILL.md) for a release
+  or an individual follow-up stage.
+- Prepare releases on `release/vX.Y.Z` and set the same version in
+  `specification.md` and `README.md`. Leave PR merges to the maintainer.
+- Use `spec/vX.Y.Z` for follow-up PRs in the implementation repositories.
+
 ## Commit messages
 
 When creating commits, write the subject and body in English using this format:
