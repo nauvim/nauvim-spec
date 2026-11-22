@@ -1024,7 +1024,7 @@ Config := {
     clipboard: string | Clipboard | nil,
     default_host: string | nil,
     hosts: dict[string, Host] | nil,
-    ssh: SshConf,
+    ssh: SshConf | nil,
     ui_opts: dict[string, dict[string, object]] | nil,
     use_ui_opts: string | nil,
 }
@@ -1257,7 +1257,7 @@ If `config.hosts` is omitted or nil, `H[X]` shall be nil for every `X`.
 
 Thus, `H[X]` is the SSH table within a Nauvim host entry. It is not the surrounding Nauvim host entry. The merge specified below shall apply only to SSH settings. It shall not inherit another host entry's `nvim`, `socket` or `policies` setting.
 
-`O(X)` denotes the SSH settings produced by the implementation's processing of the client-side OpenSSH configuration source selected by `config.ssh.config` for the supplied host name `X`, under 8.5.4.
+`O(X)` denotes the SSH settings obtained for the supplied host name `X` by applying 8.5.4 to the client-side OpenSSH configuration file selected under 8.9.
 
 The local-host selection rule in 8.3 shall precede this procedure when Nauvim selects a host Neovim. SSH jump-host resolution shall use the SSH collection `H`.
 
@@ -1306,7 +1306,7 @@ If a Nauvim entry exists for `Y` but contains no `.ssh` table, it shall not supp
 
 #### 8.5.4 OpenSSH configuration source, compatibility and errors
 
-When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the file selected by `config.ssh.config` and use it as an OpenSSH configuration source for that host under this subclause.
+When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the OpenSSH configuration file selected under 8.9 and use it as the configuration source for that host.
 
 `nauvim-core` should interpret and apply that source in a manner that approximates OpenSSH behaviour as closely as practicable, subject to the explicit requirements of this document, including 8.5.6. The concrete parsing, selection and application of settings inherited from that source are unspecified. This document does not require a correct or complete implementation of OpenSSH configuration-file syntax or semantics, or equivalent host-resolution results. Conformance of the SSH client used internally by Nauvim to the OpenSSH client is outside the scope of this document.
 
@@ -1507,7 +1507,7 @@ Clipboard := {
     timeout_ms: int | nil,
 }
 
-clipboard: string | Clipboard | nil
+config.clipboard: string | Clipboard | nil
 ```
 
 The string form shall identify a clipboard backend. In the table form, a non-nil `backend` shall identify the backend and a non-nil `timeout_ms` shall specify a positive integer timeout value in milliseconds. An omitted or nil `backend` shall default to `"auto"`.
@@ -1556,8 +1556,10 @@ SshConf := {
     known_hosts: string | nil,
 }
 
-config.ssh: SshConf
+config.ssh: SshConf | nil
 ```
+
+Nauvim shall treat an omitted or nil `config.ssh` as an empty `SshConf` table.
 
 `config.ssh.config` shall select the OpenSSH configuration file used by 8.5. `config.ssh.known_hosts` shall select the known-hosts file used by Nauvim's SSH client.
 
