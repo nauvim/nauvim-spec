@@ -4,7 +4,7 @@ A graphical user interface for Neovim, with persistent local and remote editing 
 
 The design keeps Neovim running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, port forwarding, temporary file copies and clipboard access.
 
-**Status: working draft.** This repository describes Nauvim's intended behaviour. [specification.md](specification.md) contains the requirements; this README is an informative reading guide.
+This README is an informative guide to the [Nauvim specification](specification.md), version **1.0.0**. Specification versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
 [Type notation](type-notation.md) defines the shared abstract types, representation rules and annotation syntax used by the specification.
 
@@ -20,7 +20,7 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 
 | Section | What it covers |
 | --- | --- |
-| [1 Scope](specification.md#scope) | The features and components covered by the draft. |
+| [1 Scope](specification.md#scope) | The features and components covered by the specification. |
 | [2 Normative references](specification.md#normative-references) | External API and protocol documents used by specific requirements. |
 | [3 Terms and definitions](specification.md#terms-and-definitions) | Host and client roles; sessions, connections, attachments, identifiers and resources. |
 | [4 Architecture](specification.md#architecture) | Responsibilities of the four repositories and the boundary between the engine, plugin and UI backend. |

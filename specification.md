@@ -1,6 +1,6 @@
 # Nauvim — Graphical user interface for Neovim
 
-**Draft specification**
+**Specification version 1.0.0**
 
 <a name="scope"></a>
 
@@ -12,7 +12,9 @@ It covers local and remote session management, remote procedure call (RPC) commu
 
 This document applies to the initial Flutter implementation and the components that are independent of the user interface (UI). Native input method editor (IME) integration is outside its scope.
 
-The configuration interface is specified to the extent stated in Clause 8. Other configuration details remain provisional. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
+Clause 8 defines the scope of the configuration interface. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
+
+Versions of this specification shall follow Semantic Versioning 2.0.0. Compatibility shall be assessed against the public interfaces and observable behaviour defined by this document and its Type notation supplement.
 
 <a name="normative-references"></a>
 
@@ -20,8 +22,9 @@ The configuration interface is specified to the extent stated in Clause 8. Other
 
 The [Type notation](type-notation.md) supplement shall define the abstract types, representation requirements and annotation syntax used throughout this document.
 
-The following external documents apply to the provisions that explicitly reference them. Their normative use is limited to the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP(S) origins in 8.3.2, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
+The following external documents apply to the provisions that explicitly reference them. Their normative use is limited to specification versioning in Clause 1, the Neovim API contract in 5.2, the Neovim UI-option types and meanings in 6.3.1, the client-information interface in 7.2.1, the Neovim paste interface in 7.8, HTTP(S) origins in 8.3.2, HTTP semantics, HTTP/2 protocol and URL/URI processing in 11.5.5, the Neovim clipboard-provider interface in 11.6, and the `UILeave` event's channel information in 11.7.3.
 
+- [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 - Neovim, [Nvim API — API contract](https://neovim.io/doc/user/api/#api-contract), help tag `api-contract`.
 - Neovim, [Nvim API — Client information](https://neovim.io/doc/user/api/), help tag `nvim_set_client_info()`.
 - Neovim, [Nvim API — Paste](https://neovim.io/doc/user/api/#nvim_paste()), help tag `nvim_paste()`.
@@ -517,7 +520,7 @@ For a requested host, Nauvim shall determine whether an eligible host Neovim is 
 
 A host Neovim shall be eligible for reuse only if it was started by Nauvim from the current client environment.
 
-Under the current ownership-identification mechanism, Nauvim shall identify the owning client by checking the RPC socket path in the host environment.
+Nauvim shall identify the owning client by checking the RPC socket path in the host environment.
 
 The socket path shall distinguish the client Neovim for the purposes of session ownership. It should be derived from the client's hostname, user identity and any additional information needed to distinguish that client Neovim.
 
@@ -530,8 +533,6 @@ Nauvim shall neither attach to nor modify a Neovim process outside that ownershi
 EXAMPLE A Neovim process started manually by a user, or by Nauvim from another client environment, is outside the ownership scope.
 
 Exact path derivation and the selection rule for multiple eligible sessions are unspecified.
-
-NOTE The socket-path ownership-identification mechanism is provisional and is subject to revision.
 
 <a name="stale-rpc-socket-checks"></a>
 
@@ -983,11 +984,11 @@ The configuration interface shall provide settings for:
 - the client-side clipboard backend and its timeout setting;
 - UI-specific application settings, including fonts.
 
-The intended configuration scope is limited to Nauvim application settings. An extensive editor-configuration interface comparable to Neovim's is outside the scope of this draft.
+The configuration scope is limited to Nauvim application settings. An extensive editor-configuration interface comparable to Neovim's is outside the scope of this document.
 
 Except within UI-specific option dictionaries (8.10), all predefined field names in the Lua configuration shall use snake_case. Alternative kebab-case spellings of those names shall not be accepted. This naming requirement shall not constrain user-defined host aliases or keys in `ui_opts`.
 
-Nauvim shall provide default configuration values. The native SSH host-setting defaults are specified in 8.4.2. Defaults not otherwise specified in this document remain provisional.
+Nauvim shall provide default configuration values. The native SSH host-setting defaults are specified in 8.4.2.
 
 <a name="startup-host-selection"></a>
 
@@ -1630,8 +1631,6 @@ UI-specific options shall not override the requirements of this document.
 
 Annex A illustrates the configuration model, including client information, host entries, security policies, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
 
-Configuration details that remain to be specified shall be distinguished from details expressly designated as unspecified or implementation-dependent.
-
 <a name="build-time-features-and-dependencies"></a>
 
 ## 9 Build-time features and dependencies
@@ -1725,7 +1724,7 @@ NOTE The prohibited delivery includes sending mouse input using `nvim_input_mous
 
 ### 10.2 Input method editors
 
-Native IME integration is outside the scope of this draft.
+Native IME integration is outside the scope of this document.
 
 Neovim plugins can provide input-method functionality within the host Neovim.
 
@@ -2655,7 +2654,7 @@ Nauvim shall perform the welcome-page transition and new connection attempt in a
 
 ### A.1 General
 
-This annex illustrates the configuration model specified in Clause 8 and the remaining provisional interfaces. Configuration details and defaults that remain provisional are subject to change during implementation. UI-specific option schemas are defined by the UI implementation under 8.10.
+This annex illustrates the configuration model specified in Clause 8. UI-specific option schemas are defined by the UI implementation under 8.10.
 
 The example uses the `HostInfo` table returned by the `nauvim-client-info` module injected by `nauvim-core`. Its fields describe the client environment, and `client.config_file` is a non-nil path to the selected Nauvim configuration file.
 
@@ -3013,7 +3012,7 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 
 [11] OpenSSH. [Protocol extensions — Unix domain socket forwarding](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL), Section 2.4.
 
-[12] IETF. [SSH File Transfer Protocol](https://www.ietf.org/archive/id/draft-ietf-secsh-filexfer-02.txt), Internet-Draft `draft-ietf-secsh-filexfer-02`. Informative description of SFTP operations; this draft specification does not select an SFTP version.
+[12] IETF. [SSH File Transfer Protocol](https://www.ietf.org/archive/id/draft-ietf-secsh-filexfer-02.txt), Internet-Draft `draft-ietf-secsh-filexfer-02`. Informative description of SFTP operations. This specification does not select an SFTP version.
 
 [13] Linux man-pages project. [path_resolution(7)](https://man7.org/linux/man-pages/man7/path_resolution.7.html).
 
