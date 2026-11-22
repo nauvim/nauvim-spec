@@ -12,40 +12,40 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 
 ## Where to start
 
-- **Understand the design:** read [Architecture](specification.md#4-architecture) and [Session management](specification.md#6-session-management).
-- **Configure a client:** start with [Configuration](specification.md#8-configuration), then follow the examples in [Annex A](specification.md#annex-a--configuration-examples).
-- **Write or implement plugins:** read the [execution model](specification.md#7-plugin-interface-and-client-operations) and [common API rules](specification.md#112-common-rules), then use the module links below.
+- **Understand the design:** read [Architecture](specification.md#architecture) and [Session management](specification.md#session-management).
+- **Configure a client:** start with [Configuration](specification.md#configuration), then follow the examples in [Annex A](specification.md#configuration-examples).
+- **Write or implement plugins:** read the [execution model](specification.md#plugin-interface-and-client-operations) and [common API rules](specification.md#common-api-rules), then use the module links below.
 
 ## Specification contents
 
 | Section | What it covers |
 | --- | --- |
-| [1 Scope](specification.md#1-scope) | The features and components covered by the draft. |
-| [2 Normative references](specification.md#2-normative-references) | External API and protocol documents used by specific requirements. |
-| [3 Terms and definitions](specification.md#3-terms-and-definitions) | Host and client roles; sessions, connections, attachments, identifiers and resources. |
-| [4 Architecture](specification.md#4-architecture) | Responsibilities of the four repositories and the boundary between the engine, plugin and UI backend. |
-| [5 Environments and compatibility](specification.md#5-supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
-| [6 Session management](specification.md#6-session-management) | Startup, ownership, reattachment, host switching, shutdown, resource cleanup and connection recovery. |
-| [7 Plugin interface and client operations](specification.md#7-plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
-| [8 Configuration](specification.md#8-configuration) | Lua loading, host selection, host-specific security policies, SSH resolution, host information, program arguments, clipboard backends and UI-specific options. |
-| [9 Build-time features and dependencies](specification.md#9-build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
-| [10 User interaction and rendering](specification.md#10-user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
-| [11 Nauvim plugin API](specification.md#11-nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
-| [Annex A — Configuration examples](specification.md#annex-a--configuration-examples) | Example Lua configurations, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
-| [Annex B — OpenSSH correspondences](specification.md#annex-b--openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
+| [1 Scope](specification.md#scope) | The features and components covered by the draft. |
+| [2 Normative references](specification.md#normative-references) | External API and protocol documents used by specific requirements. |
+| [3 Terms and definitions](specification.md#terms-and-definitions) | Host and client roles; sessions, connections, attachments, identifiers and resources. |
+| [4 Architecture](specification.md#architecture) | Responsibilities of the four repositories and the boundary between the engine, plugin and UI backend. |
+| [5 Environments and compatibility](specification.md#supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
+| [6 Session management](specification.md#session-management) | Startup, ownership, reattachment, host switching, shutdown, resource cleanup and connection recovery. |
+| [7 Plugin interface and client operations](specification.md#plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
+| [8 Configuration](specification.md#configuration) | Lua loading, host selection, host-specific security policies, SSH resolution, host information, program arguments, clipboard backends and UI-specific options. |
+| [9 Build-time features and dependencies](specification.md#build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
+| [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
+| [11 Nauvim plugin API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
+| [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
+| [Annex B — OpenSSH correspondences](specification.md#openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
 | [Bibliography](specification.md#bibliography) | Supporting Neovim, protocol, Lua and operating-system documentation. |
 
 ## Plugin API shortcuts
 
-The [common rules](specification.md#112-common-rules) define `(ret, err)` results, asynchronous handles, client-ID and host policy checks, path confinement and idempotent handle operations. Module-specific contracts follow:
+The [common rules](specification.md#common-api-rules) define `(ret, err)` results, asynchronous handles, client-ID and host policy checks, path confinement and idempotent handle operations. Module-specific contracts follow:
 
 | Module | Operations |
 | --- | --- |
-| [`local-forward`](specification.md#113-local-forwarding) | Open TCP or Unix domain socket forwards, obtain an assigned TCP port and clear a forward. |
-| [`filesystem`](specification.md#114-filesystem-operations) | Copy host files into the client's temporary directory and cancel or remove copied resources. |
-| [`http`](specification.md#115-http-services-and-gui-access) | Serve files over HTTP(S), query the bound port and open or focus GUI windows for HTTP(S) URLs. |
-| [`clipboard`](specification.md#116-clipboard-provider) | Supply a Neovim clipboard provider backed by the client system clipboard. |
-| [`client`](specification.md#117-client-registration-rpc-destination-selection-and-session-switching) | Register the RPC destination, clear stored identifiers on `UILeave` and request a host switch. |
+| [`local-forward`](specification.md#local-forwarding-api) | Open TCP or Unix domain socket forwards, obtain an assigned TCP port and clear a forward. |
+| [`filesystem`](specification.md#filesystem-api) | Copy host files into the client's temporary directory and cancel or remove copied resources. |
+| [`http`](specification.md#http-plugin-api) | Serve files over HTTP(S), query the bound port and open or focus GUI windows for HTTP(S) URLs. |
+| [`clipboard`](specification.md#clipboard-provider) | Supply a Neovim clipboard provider backed by the client system clipboard. |
+| [`client`](specification.md#client-api) | Register the RPC destination, clear stored identifiers on `UILeave` and request a host switch. |
 
 ## Reading the requirements
 

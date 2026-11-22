@@ -2,6 +2,8 @@
 
 **Draft specification**
 
+<a name="scope"></a>
+
 ## 1 Scope
 
 This document specifies the architecture and behaviour of Nauvim, a graphical user interface (GUI) for Neovim.
@@ -11,6 +13,8 @@ It covers local and remote session management, remote procedure call (RPC) commu
 This document applies to the initial Flutter implementation and the components that are independent of the user interface (UI). Native input method editor (IME) integration is outside its scope.
 
 The configuration interface is specified to the extent stated in Clause 8. Other configuration details remain provisional. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
+
+<a name="normative-references"></a>
 
 ## 2 Normative references
 
@@ -30,19 +34,27 @@ The following external documents apply to the provisions that explicitly referen
 
 Other supporting technical documents are listed in the Bibliography. The OpenSSH configuration guidance in 8.5.4 and Annex B uses `ssh_config(5)` [22] as an informative reference.
 
+<a name="terms-and-definitions"></a>
+
 ## 3 Terms and definitions
 
 For the purposes of this document, the following terms and definitions apply.
 
 Unless otherwise qualified, **session** denotes a Nauvim session and **attachment** denotes a UI attachment. **Local** and **remote** are relative to the client environment. Connections and channels are qualified by their protocol where necessary.
 
+<a name="host-neovim"></a>
+
 ### 3.1 host Neovim
 
 Neovim process launched with `--headless` that maintains editing state and provides the Neovim RPC application programming interface (API) and UI protocol
 
+<a name="host-environment"></a>
+
 ### 3.2 host environment
 
 machine or execution environment in which a host Neovim runs, including its filesystem, processes and network environment
+
+<a name="client-neovim"></a>
 
 ### 3.3 client Neovim
 
@@ -52,27 +64,39 @@ process that implements the Neovim UI protocol and provides a user interface for
 
 Note 1 to entry: Nauvim is one client Neovim. Other implementations also exist.
 
+<a name="client-environment"></a>
+
 ### 3.4 client environment
 
 machine or execution environment in which a client Neovim runs, including its filesystem, processes and network environment
 
 Note 1 to entry: The host environment and client environment can be the same environment.
 
+<a name="nauvim-engine"></a>
+
 ### 3.5 Nauvim engine
 
 client-side component implemented by `nauvim-core` that manages sessions, communicates with host Neovims and handles Nauvim requests
+
+<a name="host-alias"></a>
 
 ### 3.6 host alias
 
 name resolved by Nauvim to client-side configuration describing how to reach a host environment and start or locate a host Neovim
 
+<a name="nauvim-session"></a>
+
 ### 3.7 Nauvim session
 
 live editing context managed by Nauvim, represented by a host Neovim and the information used to identify and reconnect to it
 
+<a name="owning-client-environment"></a>
+
 ### 3.8 owning client environment
 
 client environment from which Nauvim started the host Neovim associated with a Nauvim session
+
+<a name="session-identifier"></a>
 
 ### 3.9 session identifier
 
@@ -80,9 +104,13 @@ client environment from which Nauvim started the host Neovim associated with a N
 
 identifier referring to the same Nauvim session across RPC connections and UI attachments
 
+<a name="session-multiplexing"></a>
+
 ### 3.10 session multiplexing
 
 management of multiple Nauvim sessions with switching of a client's attachment between them
+
+<a name="session-file"></a>
 
 ### 3.11 session file
 
@@ -90,17 +118,23 @@ script containing commands for restoring selected Neovim editing state
 
 Note 1 to entry: Neovim's `:mksession` command produces a session file. Such a file records state for restoration; it does not preserve a running process. See [4].
 
+<a name="rpc-transport"></a>
+
 ### 3.12 RPC transport
 
 underlying communication mechanism carrying Neovim RPC messages
 
 EXAMPLE Pipes for standard input and standard output, a Unix domain socket, a Transmission Control Protocol (TCP) connection or a stream carried through Secure Shell (SSH).
 
+<a name="rpc-connection"></a>
+
 ### 3.13 RPC connection
 
 live, bidirectional MessagePack-RPC communication path between a client and a host Neovim
 
 Note 1 to entry: An RPC connection can exist before a UI attaches. Nauvim's connection cleanup on detachment is specified in 6.3.
+
+<a name="rpc-endpoint"></a>
 
 ### 3.14 RPC endpoint
 
@@ -110,9 +144,13 @@ EXAMPLE A Unix domain socket path or a TCP address and port.
 
 Note 1 to entry: Forwarding can cause the host-side endpoint and the address used by the client to differ.
 
+<a name="neovim-rpc-channel"></a>
+
 ### 3.15 Neovim RPC channel
 
 Neovim input/output (I/O) channel operating in RPC mode and representing an RPC communication path within a Neovim process
+
+<a name="channel-identifier"></a>
 
 ### 3.16 channel identifier
 
@@ -122,15 +160,21 @@ integer identifying a channel within a particular Neovim process
 
 Note 1 to entry: A channel ID identifies a communication channel, independently of a session ID or socket address. Neovim channels are described in [3].
 
+<a name="neovim-job"></a>
+
 ### 3.17 Neovim job
 
 process started and managed through Neovim's job-control API
 
 Note 1 to entry: A job ID also identifies the job's I/O channel. A channel accepted through a listening socket has no associated job. See [5].
 
+<a name="ssh-connection"></a>
+
 ### 3.18 SSH connection
 
 authenticated, encrypted connection between an SSH client and an SSH server
+
+<a name="ssh-channel"></a>
 
 ### 3.19 SSH channel
 
@@ -138,23 +182,33 @@ logical, bidirectional communication path carried within an SSH connection
 
 Note 1 to entry: SSH channels and Neovim channels belong to separate protocol layers.
 
+<a name="ssh-session"></a>
+
 ### 3.20 SSH session
 
 remote execution of a program through an SSH channel of type `session`
 
 Note 1 to entry: The program can be a shell, command or subsystem. An SSH session can operate with or without a pseudo-terminal. See [6].
 
+<a name="ssh-multiplexing"></a>
+
 ### 3.21 SSH multiplexing
 
 carriage of multiple SSH channels over a shared SSH connection
+
+<a name="disconnection"></a>
 
 ### 3.22 disconnection
 
 closure or loss of a connection at a specified protocol layer
 
+<a name="reconnection"></a>
+
 ### 3.23 reconnection
 
 establishment of a new connection after a previous connection has ended
+
+<a name="ui-attachment"></a>
 
 ### 3.24 UI attachment
 
@@ -162,9 +216,13 @@ registration of a client as a UI of a host Neovim on a particular RPC channel
 
 Note 1 to entry: `nvim_ui_attach()` establishes this registration and enables UI events on the channel. See [1] and [2].
 
+<a name="attach"></a>
+
 ### 3.25 attach
 
 establish a UI attachment over an RPC connection
+
+<a name="detach"></a>
 
 ### 3.26 detach
 
@@ -172,15 +230,21 @@ end a UI attachment
 
 Note 1 to entry: UI detachment and connection closure are distinct concepts. Nauvim performs both as specified in 6.3.
 
+<a name="reattach"></a>
+
 ### 3.27 reattach
 
 establish a new UI attachment to an existing Nauvim session after a previous attachment has ended
 
 Note 1 to entry: Following Nauvim's detachment procedure in 6.3, reattachment requires a new RPC connection and, for a remote host, a new SSH connection.
 
+<a name="rpc-request"></a>
+
 ### 3.28 RPC request
 
 MessagePack-RPC message invoking a method and expecting a corresponding response containing a result or an error
+
+<a name="rpc-notification"></a>
 
 ### 3.29 RPC notification
 
@@ -188,31 +252,45 @@ MessagePack-RPC message invoking a method without expecting an RPC response
 
 Note 1 to entry: The request and notification message types are described in [7].
 
+<a name="nauvim-request"></a>
+
 ### 3.30 Nauvim request
 
 application-level request for the Nauvim engine to perform an operation in the client environment
 
 Note 1 to entry: A Nauvim request can be carried by an RPC request or an RPC notification, according to the applicable API.
 
+<a name="nauvim-plugin-definition"></a>
+
 ### 3.31 Nauvim plugin
 
 Neovim plugin loaded by the host Neovim that depends on `nauvim-plugin` to request operations from the Nauvim engine
+
+<a name="ui-backend"></a>
 
 ### 3.32 UI backend
 
 concrete implementation of rendering and GUI functionality using a framework or toolkit
 
+<a name="gui-window"></a>
+
 ### 3.33 GUI window
 
 window managed by Nauvim as part of the client application's graphical user interface
+
+<a name="gui-tab"></a>
 
 ### 3.34 GUI tab
 
 tab managed by Nauvim as part of the client application's graphical user interface
 
+<a name="neovim-window"></a>
+
 ### 3.35 Neovim window
 
 viewport displaying a Neovim buffer
+
+<a name="neovim-tabpage"></a>
 
 ### 3.36 Neovim tabpage
 
@@ -220,11 +298,15 @@ collection of Neovim windows
 
 Note 1 to entry: Neovim windows and tabpages belong to the host Neovim's editing state. See [8].
 
+<a name="client-resource"></a>
+
 ### 3.37 client resource
 
 object created or managed by Nauvim in the client environment
 
 EXAMPLE A GUI window, GUI tab, local forward, copied file or directory, or client-side HTTP(S) server.
+
+<a name="local-forward"></a>
 
 ### 3.38 local forward
 
@@ -234,13 +316,19 @@ Note 1 to entry: A local forward between TCP ports is also referred to as a loca
 
 Note 2 to entry: For forwarding through SSH, each accepted connection uses a forwarding channel. Forwarding channels are independent of SSH session channels. See [6] and [11].
 
+<a name="capability"></a>
+
 ### 3.39 capability
 
 feature or operation supported by a particular Nauvim implementation or UI backend
 
+<a name="security-policy"></a>
+
 ### 3.40 security policy
 
 client-side rules governing permission for Nauvim requests and their access to client resources
+
+<a name="resource-handle"></a>
 
 ### 3.41 resource handle
 
@@ -252,23 +340,33 @@ Note 2 to entry: A resource handle is distinct from a Neovim channel ID, an RPC 
 
 Note 3 to entry: A handle value can be reused. Its meaning is determined by its current association in the addressed Nauvim process, as specified in 11.2.2.
 
+<a name="request-error"></a>
+
 ### 3.42 request error
 
 error returned to the host Neovim through the `err` result of a `nauvim-plugin` function that issues an RPC request
+
+<a name="nauvim-error"></a>
 
 ### 3.43 Nauvim error
 
 error reported in the client environment through Nauvim's error-message interface
 
+<a name="fairness"></a>
+
 ### 3.44 fairness
 
 scheduling property under which asynchronous work that remains eligible for execution and has not been cancelled is eventually scheduled for execution
+
+<a name="serving-root"></a>
 
 ### 3.45 serving root
 
 resolved filesystem location designated by `client_file` for the HTTP file-serving interface
 
 Note 1 to entry: A serving root can be a directory or a regular file. Its permitted serving scope is specified in 11.5.5.3.
+
+<a name="client-identifier"></a>
 
 ### 3.46 client identifier
 
@@ -278,11 +376,15 @@ unsigned 32-bit integer associated with a Nauvim process and used for client reg
 
 Note 1 to entry: A client ID is distinct from a session ID, a Neovim channel ID and a resource handle. Its lifecycle is specified in 7.2.1.
 
+<a name="process-temporary-directory-definition"></a>
+
 ### 3.47 process temporary directory
 
 directory in the client environment allocated uniquely to a Nauvim process and used as the base directory for the `client_file` input fields of `filesystem.copy` and `http.serve_file` and the `client_socket_path` input field of `local-forward.open_socket`
 
 Note 1 to entry: Its lifecycle is specified in 6.6.5, and the path-interpretation rules are specified in 11.2.6.
+
+<a name="ui-implementation-identifier"></a>
 
 ### 3.48 UI implementation identifier
 
@@ -292,7 +394,11 @@ string identifying a concrete `nauvim` implementation for UI-specific configurat
 
 Note 1 to entry: A UI implementation ID identifies an application implementation, rather than an individual running process. It is distinct from the client ID specified in 3.46.
 
+<a name="architecture"></a>
+
 ## 4 Architecture
+
+<a name="repository-allocation"></a>
 
 ### 4.1 Repository allocation
 
@@ -305,6 +411,8 @@ The project shall comprise the following repositories:
 
 Their responsibilities shall be allocated as specified in 4.2 to 4.5.
 
+<a name="nvim-rpc"></a>
+
 ### 4.2 `nvim-rpc`
 
 `nvim-rpc` shall provide a general-purpose Rust abstraction of the Neovim RPC protocol.
@@ -313,6 +421,8 @@ Its principal entry points shall be the `nvim-rpc-plugin` and `nvim-rpc-ui` crat
 
 EXAMPLE GTK, Qt, Flutter and Tauri are frameworks or toolkits for which a backend implementation can be provided.
 
+<a name="nauvim-core"></a>
+
 ### 4.3 `nauvim-core`
 
 `nauvim-core` shall be a single Rust crate built on `nvim-rpc`.
@@ -320,6 +430,8 @@ EXAMPLE GTK, Qt, Flutter and Tauri are frameworks or toolkits for which a backen
 It shall provide the UI-independent Nauvim engine, including session management, SSH support with SSH multiplexing, and integration with `nauvim-plugin`. Build-time selection of optional functionality shall follow 9.1; the functionality corresponding to `nauvim-plugin::client` shall always be implemented.
 
 For GUI requests, `nauvim-core` shall process the plugin RPC and arrange the requested operation through the UI backend, in accordance with 7.4.
+
+<a name="nauvim-plugin"></a>
 
 ### 4.4 `nauvim-plugin`
 
@@ -330,6 +442,8 @@ It shall provide the Lua interface for transmitting Nauvim requests defined by `
 ```lua
 local nauvim = require("nauvim-plugin")
 ```
+
+<a name="nauvim"></a>
 
 ### 4.5 `nauvim`
 
@@ -343,7 +457,11 @@ Subject to those string requirements, the ID's format is unspecified. The ID sho
 
 The initial default implementation shall use Flutter.
 
+<a name="supported-environments-and-component-compatibility"></a>
+
 ## 5 Supported environments and component compatibility
+
+<a name="platform-targets"></a>
 
 ### 5.1 Platform targets
 
@@ -357,6 +475,8 @@ The initial platform targets shall be those listed in Table 1. Each target shall
 | GNU/Linux | aarch64 | Supported | Supported |
 | macOS | Apple Silicon | Supported | Supported |
 
+<a name="neovim-compatibility"></a>
+
 ### 5.2 Neovim compatibility
 
 Nauvim shall support host Neovim version `v0.12.6`. Behaviour with any Neovim version other than `v0.12.6` is unspecified.
@@ -365,11 +485,17 @@ Nauvim's interaction with Neovim shall be implemented in accordance with the Neo
 
 NOTE Implementing against this contract is expected to allow Nauvim to work with Neovim versions `>= v0.12.6`. This expectation does not extend the specified support requirement beyond `v0.12.6`.
 
+<a name="core-and-plugin-compatibility"></a>
+
 ### 5.3 Core and plugin compatibility
 
 The supported combination shall consist of the latest version of `nauvim-core` and the latest version of `nauvim-plugin`. Behaviour with any other combination of their versions is unspecified.
 
+<a name="session-management"></a>
+
 ## 6 Session management
+
+<a name="host-prerequisites-and-startup"></a>
 
 ### 6.1 Host prerequisites and startup
 
@@ -380,6 +506,8 @@ Nauvim shall support starting a host Neovim in the client environment. When SSH 
 Nauvim shall start the host Neovim with `--headless` and `--listen` followed by the resolved socket setting. The required placement of these arguments shall follow 8.7.2.
 
 If host Neovim startup fails, Nauvim shall apply the connection-failure procedure in 6.9.
+
+<a name="session-ownership-and-reuse"></a>
 
 ### 6.2 Session ownership and reuse
 
@@ -403,6 +531,8 @@ Exact path derivation and the selection rule for multiple eligible sessions are 
 
 NOTE The socket-path ownership-identification mechanism is provisional and is subject to revision.
 
+<a name="stale-rpc-socket-checks"></a>
+
 #### 6.2.1 Stale RPC socket checks
 
 Before each initial attachment or reattachment, Nauvim shall check whether the selected host Neovim RPC socket in the host environment is stale. The check shall concern the socket selected for the requested session under the ownership rules in 6.2.
@@ -413,11 +543,15 @@ The method used to determine whether the socket is stale is unspecified. If the 
 
 If the staleness check or the required deletion fails, Nauvim shall abandon the attachment attempt, close the associated SSH connection if present, return to the welcome page and display the error. A failed or timed-out staleness check shall not by itself constitute a determination that the socket is stale.
 
+<a name="timeouts"></a>
+
 #### 6.2.2 Timeouts
 
 Nauvim shall enforce a timeout for the socket staleness check and for initial attachment and reattachment to a host Neovim. The specific timeout durations are unspecified.
 
 Expiry of the staleness-check timeout shall be treated as a check failure under 6.2.1. Expiry of an attachment or reattachment timeout shall be treated as an attachment failure under 6.3.
+
+<a name="attachment-and-detachment"></a>
 
 ### 6.3 Attachment and detachment
 
@@ -453,6 +587,8 @@ Reattachment following this procedure shall establish a new RPC connection and, 
 
 If UI attachment or reattachment fails, including by timeout, Nauvim shall apply the connection-failure procedure in 6.9. This requirement shall also apply when the failed attachment is part of a session switch under 6.5.
 
+<a name="ui-options-at-attachment"></a>
+
 #### 6.3.1 UI options at attachment
 
 On every initial UI attachment and reattachment, `nauvim-core` shall enable all UI capability options that Neovim does not designate as legacy or deprecated.
@@ -460,6 +596,8 @@ On every initial UI attachment and reattachment, `nauvim-core` shall enable all 
 Each UI option shall be supplied in accordance with its defined type and meaning. See [2].
 
 NOTE UI options include capability switches and options that convey descriptive values. The requirement to enable UI capabilities does not mean assigning the Boolean value `true` to every option.
+
+<a name="welcome-page-and-automatic-connection"></a>
 
 ### 6.4 Welcome page and automatic connection
 
@@ -472,6 +610,8 @@ After attachment, Nauvim shall display the host Neovim's UI.
 At application startup, Nauvim shall use `hosts` together with `default_host` to select between automatic connection and waiting on the welcome page, as specified in 8.2.1. When that procedure requires user selection, the available choices and their presentation shall follow that subclause. The concrete host-selection interaction is otherwise unspecified.
 
 Automatic connection under 8.2.1 shall be a startup action. The welcome-page transitions required for detachment, host Neovim termination and error recovery shall remain governed by 6.3, 6.8 and 6.9. A session switch shall proceed to its requested host under 6.5.
+
+<a name="plugin-initiated-session-switching"></a>
 
 ### 6.5 Plugin-initiated session switching
 
@@ -495,11 +635,15 @@ EXAMPLE Calling `require("nauvim-plugin.client").connect({ host = "another-host"
 
 NOTE The `host` field is a Nauvim host alias. Its interpretation is defined by this interface rather than inherited from Neovim's `:connect` command.
 
+<a name="nauvim-process-termination-and-reopening"></a>
+
 ### 6.6 Nauvim process termination and reopening
 
 Termination of the Nauvim process shall not terminate host Neovim processes associated with its managed sessions. This requirement applies to both local and remote sessions, including reattached sessions and termination by killing the Nauvim process.
 
 A subsequently started Nauvim process in the same client environment shall be able to discover and reattach to eligible host Neovim processes that remain running. Session discovery and ownership identification shall follow 6.2.
+
+<a name="shutdown-triggers"></a>
 
 #### 6.6.1 Shutdown triggers
 
@@ -509,6 +653,8 @@ Nauvim shall initiate and perform shutdown cleanup when either of the following 
 - the Nauvim process receives `SIGTERM`.
 
 The precise meaning of a GUI window being closed is UI-toolkit-dependent. It shall correspond to the ordinary user-facing meaning of closing a window.
+
+<a name="cleanup-responsibilities"></a>
 
 #### 6.6.2 Cleanup responsibilities
 
@@ -527,6 +673,8 @@ The requirement to terminate child processes shall not apply to host Neovim proc
 
 Cleanup shall preserve the ability to discover and reattach to those host Neovim processes in accordance with 6.2 and 6.6. In particular, cleanup shall not remove a host Neovim's RPC socket while it is needed for subsequent discovery and reattachment.
 
+<a name="running-asynchronous-tasks"></a>
+
 #### 6.6.3 Running asynchronous tasks
 
 Nauvim shall send a stop signal to each running asynchronous task during shutdown cleanup.
@@ -535,11 +683,15 @@ Nauvim should ensure that tasks receiving a stop signal terminate, and should co
 
 Sending the stop signal is mandatory. A guarantee of task termination and confirmation that a task has terminated are recommended, but are not mandatory conditions for shutdown cleanup or process termination.
 
+<a name="graceful-shutdown"></a>
+
 #### 6.6.4 Graceful shutdown
 
 During shutdown cleanup, Nauvim should perform graceful shutdown by ceasing to accept new RPC calls from host Neovim processes.
 
 Nauvim should also cease accepting new connections through `accept(2)` on local ports and sockets used for WebView-related functionality and local forwarding.
+
+<a name="process-temporary-directory"></a>
 
 #### 6.6.5 Process temporary directory
 
@@ -551,11 +703,15 @@ During shutdown cleanup, Nauvim shall remove the process temporary directory and
 
 The directory's location, storage medium and filesystem, including whether it is backed by `tmpfs`, are implementation-dependent. Whether the operating system removes the directory during system shutdown or boot is also implementation-dependent.
 
+<a name="shutdown-deletion-failures-and-scope-of-cleanup"></a>
+
 #### 6.6.6 Shutdown deletion failures and scope of cleanup
 
 If deletion fails during shutdown cleanup, Nauvim shall display an error message and proceed to process termination without retrying or resuming the failed deletion.
 
 The file-deletion requirements specify the effects of cleanup when cleanup is executed. If termination prevents cleanup from executing, those requirements do not establish a guarantee that the remaining files will eventually be deleted. They neither prohibit deletion by other mechanisms nor require the implementation to provide such mechanisms.
+
+<a name="concurrent-nauvim-instances"></a>
 
 ### 6.7 Concurrent Nauvim instances
 
@@ -563,7 +719,11 @@ The defined operating configuration comprises at most one running Nauvim instanc
 
 Starting additional concurrent instances can succeed. Behaviour with multiple concurrent Nauvim instances in one client environment is undefined.
 
+<a name="unexpected-connection-interruption"></a>
+
 ### 6.8 Unexpected connection interruption
+
+<a name="connections-in-scope"></a>
 
 #### 6.8.1 Connections in scope
 
@@ -579,6 +739,8 @@ Interruption of a separate plugin-only RPC connection shall not trigger this pro
 An SSH connection serving the host session shall remain in scope even if it also carries plugin traffic.
 
 The exclusions in this subclause concern the events that trigger recovery. They shall not exempt plugin-related resources from cleanup when an in-scope interruption has occurred.
+
+<a name="recovery-and-cleanup"></a>
 
 #### 6.8.2 Recovery and cleanup
 
@@ -596,6 +758,8 @@ The graceful-shutdown recommendations in 6.6.4 shall also apply to the connectio
 
 Recovery cleanup shall not terminate a surviving host Neovim or remove a non-stale RPC socket needed for subsequent discovery and reattachment. Stale-socket checking and deletion before a later attachment attempt shall follow 6.2.1.
 
+<a name="errors-before-ui-attachment"></a>
+
 ### 6.9 Errors before UI attachment
 
 If an error occurs during a connection attempt before UI attachment is complete, Nauvim shall display the error, return to the welcome page and perform cleanup as necessary. This rule shall apply to initial connections, reattachments and session switches, including failures of host resolution, authentication, host Neovim startup and UI attachment.
@@ -604,7 +768,11 @@ Where cleanup is needed, Nauvim shall apply the relevant resource-cleanup requir
 
 The non-fatal client-registration and host-side setup failures specified in 7.2.1 and 7.2.2 shall be exceptions to this procedure and shall be handled as specified in those subclauses.
 
+<a name="plugin-interface-and-client-operations"></a>
+
 ## 7 Plugin interface and client operations
+
+<a name="execution-model"></a>
 
 ### 7.1 Execution model
 
@@ -616,11 +784,15 @@ The plugin can perform operations in the host environment through the facilities
 
 The detailed API contracts in Clause 11 shall apply when the corresponding functionality is enabled.
 
+<a name="rpc-destination-registration"></a>
+
 ### 7.2 RPC destination registration
 
 Nauvim shall call `nvim_set_client_info` during each initial UI attachment and reattachment and initiate host-side setup as specified in 7.2.1 and 7.2.2.
 
 `nauvim-plugin` shall use the single channel ID selected under 11.7 as the destination for RPC messages to the Nauvim engine and the associated stored client ID as their first argument. Calls made while either stored identifier is `nil` shall be subject to 7.3.
+
+<a name="process-client-identifier-and-client-information"></a>
 
 #### 7.2.1 Process client identifier and client information
 
@@ -654,6 +826,8 @@ NOTE 1 The client type `"ui"` identifies a GUI frontend in Neovim's client-infor
 
 NOTE 2 Listing an RPC method elsewhere in this document does not itself require an entry in the `methods` parameter.
 
+<a name="asynchronous-host-side-setup"></a>
+
 #### 7.2.2 Asynchronous host-side setup
 
 After successfully calling `nvim_set_client_info`, Nauvim shall asynchronously invoke `require("nauvim-plugin.client").setup({ client_id = client_id })` in the host Neovim using `nvim_exec2` or an equivalent execution RPC. The setup invocation shall execute when Nauvim is attached as a UI. The fair-scheduling requirement in 11.2.2 shall apply.
@@ -663,6 +837,8 @@ The `client_id` field shall contain the process client ID specified in 7.2.1. Na
 A failure to load or execute the host-side setup, including absence of the `nauvim-plugin.client` module or failure to select a matching client, shall be ignored by `nauvim-core` and `nauvim-plugin`. Neither component shall raise or report an error, display a message or initiate recovery solely because of that failure.
 
 Setup failure shall not by itself prevent or terminate UI attachment or affect normal editor operation. Nauvim shall continue to function as a Neovim GUI without an available `nauvim-plugin` RPC destination. Plugin calls that require that destination shall follow 7.3. The stored identifiers following an unsuccessful setup invocation shall be governed by 11.7.1 and 11.7.2.
+
+<a name="operation-without-a-selected-rpc-destination"></a>
 
 ### 7.3 Operation without a selected RPC destination
 
@@ -676,6 +852,8 @@ Functions using the `(ret, err)` convention in 11.2.1 shall return `(nil, nil)`.
 
 This no-effect rule shall take precedence over method-specific validation and operation requirements. It shall apply to functions that normally issue RPC requests or notifications and to clipboard-provider `copy` callbacks. The clipboard-provider `paste` callbacks shall retain the behaviour specified in 11.6.2 regardless of whether an RPC destination is selected.
 
+<a name="gui-operations"></a>
+
 ### 7.4 GUI operations
 
 When HTTP plugin functionality is enabled, `nauvim-plugin` shall provide `http.open_webview` (11.5.3) and `http.focus_webview` (11.5.6). It shall transmit the corresponding RPC request and notification, respectively, to `nauvim-core`.
@@ -688,6 +866,8 @@ EXAMPLE 1 A plugin opens an overlay window above an existing GUI window to inspe
 
 EXAMPLE 2 A plugin opens a WebView or displays an image in the client environment.
 
+<a name="local-forwarding-overview"></a>
+
 ### 7.5 Local forwarding
 
 When local-forwarding functionality is enabled, Nauvim shall provide the interface specified in 11.3 for forwarding between TCP ports and between Unix domain sockets.
@@ -696,6 +876,8 @@ The interface shall support local host environments and, when SSH support is ena
 
 EXAMPLE A web server runs in a Docker container with its service published on host port `8080`. A Nauvim plugin requests forwarding from client port `8081` to host port `8080`. A browser in the client environment, such as Firefox, accesses the service at `http://localhost:8081/`.
 
+<a name="client-side-security"></a>
+
 ### 7.6 Client-side security
 
 Nauvim shall apply the host-specific security policies defined in 8.3.2 to the operations specified in 11.2.8.
@@ -703,6 +885,8 @@ Nauvim shall apply the host-specific security policies defined in 8.3.2 to the o
 Nauvim should restrict operations delegated by host Neovims using sandboxing, configurable security policies or both.
 
 The restriction mechanism should apply to access to client resources, including GUI operations and local port forwarding.
+
+<a name="client-side-files-and-https-services"></a>
 
 ### 7.7 Client-side files and HTTP(S) services
 
@@ -713,6 +897,8 @@ The filesystem interface copies files from the host environment to the client en
 The `client_file` input fields of `filesystem.copy` and `http.serve_file` shall share the process temporary directory as their path base, in accordance with 11.2.6.
 
 EXAMPLE A Nauvim plugin requests a client-side HTTP(S) server to serve HTML and JavaScript assets for an interactive user interface. The server implementation can use `hyper` for HTTP handling.
+
+<a name="clipboard-integration"></a>
 
 ### 7.8 Clipboard integration
 
@@ -728,7 +914,11 @@ The concrete client-side interfaces between `nauvim`, `nauvim-core` and clipboar
 
 Additional dependencies for clipboard integration shall be subject to the client and host allocation in 9.2. Client-side clipboard backend selection, availability validation and runtime error reporting shall follow 8.8.
 
+<a name="configuration"></a>
+
 ## 8 Configuration
+
+<a name="configuration-source-and-execution-environment"></a>
 
 ### 8.1 Configuration source and execution environment
 
@@ -739,6 +929,8 @@ When the user does not specify a path, the default shall be `$XDG_CONFIG_HOME/na
 The configuration shall be evaluated by the Nauvim engine in the client environment.
 
 Before executing the configuration file, `nauvim-core` shall obtain the client-side `HostInfo` specified in 8.6 and inject the `nauvim-client-info` module into the configuration's Lua environment. `require("nauvim-client-info")` shall return that `HostInfo` table. The acquisition and failure rules in 8.6.3 shall apply before execution of the configuration file begins.
+
+<a name="lua-module-search-path"></a>
 
 #### 8.1.1 Lua module search path
 
@@ -766,6 +958,8 @@ NOTE 1 Lua module-file search paths contain filename templates separated by semi
 
 NOTE 2 These templates follow Neovim's local Lua-module layout and search order. See [21].
 
+<a name="configuration-loading-failures"></a>
+
 #### 8.1.2 Configuration-loading failures
 
 If loading the Nauvim Lua configuration fails, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration, and to client-information acquisition failures that prevent its execution under 8.6.3.
@@ -773,6 +967,8 @@ If loading the Nauvim Lua configuration fails, Nauvim shall display the error an
 The fallback shall use the Nauvim default configuration. Defaults expressly specified in this document shall apply; the remaining default values shall be specified separately. Where this document specifies a field-specific fallback or recovery rule, that rule shall apply.
 
 Failures in obtaining required OpenSSH-source settings during host resolution shall instead follow 8.5.4 and the connection-failure procedure in 6.9.
+
+<a name="configuration-scope"></a>
 
 ### 8.2 Configuration scope
 
@@ -790,6 +986,8 @@ The intended configuration scope is limited to Nauvim application settings. An e
 Except within UI-specific option dictionaries (8.10), all predefined field names in the Lua configuration shall use snake_case. Alternative kebab-case spellings of those names shall not be accepted. This naming requirement shall not constrain user-defined host aliases or keys in `ui_opts`.
 
 Nauvim shall provide default configuration values. The native SSH host-setting defaults are specified in 8.4.2. Defaults not otherwise specified in this document remain provisional.
+
+<a name="startup-host-selection"></a>
 
 #### 8.2.1 Startup host selection
 
@@ -812,6 +1010,8 @@ The default Host shall be an independent choice from the named entries in `hosts
 
 Connection to a selected destination shall follow the startup, ownership, reuse and attachment requirements in Clause 6. OpenSSH-source failures shall follow 8.5.4 and 6.9.
 
+<a name="configuration-structure"></a>
+
 #### 8.2.2 Configuration structure
 
 The top-level configuration fields shall have the following types:
@@ -831,7 +1031,11 @@ config: Config
 
 The requirements for `Host`, `Clipboard` and `SshConf` shall be as specified in 8.3, 8.8 and 8.9, respectively. UI-specific configuration shall follow 8.10. Startup host selection shall follow 8.2.1.
 
+<a name="host-configuration"></a>
+
 ### 8.3 Host configuration and local host designation
+
+<a name="host-entries-and-local-host-selection"></a>
 
 #### 8.3.1 Host entries and local host selection
 
@@ -856,7 +1060,7 @@ Specifically, if `config.hosts[X]` exists and `config.hosts[X].ssh == nil`, Nauv
 
 For lookup of an explicitly supplied host name `X`, the absence of `config.hosts[X]` shall not designate a local host. In that case, Nauvim shall resolve `X` through the OpenSSH configuration source in accordance with 8.5. Selection of the default Host under 8.2.1 shall directly select its default local specification and shall not constitute lookup of an absent host name.
 
-<a id="annex-b--matters-requiring-further-specification"></a>
+<a name="host-specific-security-policies"></a>
 
 #### 8.3.2 Host-specific security policies
 
@@ -909,7 +1113,11 @@ Nauvim shall validate policy keys and values against this subclause when loading
 
 Permission under this subclause shall remain subject to the applicable method requirements in Clause 11, including URL scheme validation and client path confinement.
 
+<a name="native-ssh-host-settings"></a>
+
 ### 8.4 Native SSH host settings
+
+<a name="structure-names-and-validation"></a>
 
 #### 8.4.1 Structure, names and validation
 
@@ -944,6 +1152,8 @@ Unknown SSH fields and invalid field types shall be configuration errors, includ
 
 Lua expressions may compute field values. The resulting values shall conform to the specified field types; the ability to define a Lua function shall not, by itself, make a function a valid SSH field value.
 
+<a name="fields-and-defaults"></a>
+
 #### 8.4.2 Fields and defaults
 
 Table 3 specifies the accepted native SSH fields and their defaults. A native default shall apply only when host resolution has not supplied a value for the setting. The distinction between an absent field and a defaulted field shall be preserved during merging as specified in 8.5.2 and 8.5.5.
@@ -963,11 +1173,15 @@ Table 3 specifies the accepted native SSH fields and their defaults. A native de
 | `kex_algorithms` | Ordered comma-separated string or array of algorithm names | Transport defaults |
 | `host_key_algorithms` | Ordered comma-separated string or array of host-key algorithm names | Transport defaults with known-host preferences |
 
+<a name="boolean-values"></a>
+
 #### 8.4.3 Boolean values
 
 The `identities_only` field shall accept the booleans `true` and `false`, and the case-insensitive strings `"true"`, `"false"`, `"yes"` and `"no"`. The strings `"true"` and `"yes"` shall represent true; `"false"` and `"no"` shall represent false.
 
 The `identities_only` setting shall filter the identities used for SSH user authentication. It shall not, by itself, disable the authentication agent.
+
+<a name="paths-and-authentication-agents"></a>
 
 #### 8.4.4 Paths and authentication agents
 
@@ -980,6 +1194,8 @@ EXAMPLE `identity_agent = os.getenv("SSH_AUTH_SOCK")` explicitly obtains an agen
 The native value `identity_agent = "none"` shall be rejected because it is not an absolute path. Native Lua configuration shall not implicitly read `SSH_AUTH_SOCK`. When no value for the agent is supplied by host resolution, the native default shall be to use no authentication agent.
 
 These rules apply to native Lua input. The interpretation of settings obtained from the OpenSSH configuration source is governed by 8.5.4.
+
+<a name="algorithm-preferences"></a>
 
 #### 8.4.5 Algorithm preferences
 
@@ -1001,6 +1217,8 @@ An explicitly configured host-key algorithm list, after any modifier is applied,
 
 Each jump host, including an inline jump host, shall have its own algorithm policy. KEX extension signals shall be managed by the SSH client and shall not be supplied as algorithm names in these settings.
 
+<a name="jump-hosts"></a>
+
 #### 8.4.6 Jump hosts
 
 The `proxy_jump` setting shall accept a host-alias string, an inline host table, or an ordered sequence containing strings and inline host tables.
@@ -1017,7 +1235,11 @@ Only the first jump host's nested `proxy_jump` shall add ancestor jump hosts.
 
 The user shall be responsible for ensuring that proxy-jump definitions contain no cycles. `nauvim-core` shall not check those definitions for cycles. Any error encountered while using such definitions shall be handled under the otherwise applicable requirements of this document; no cycle-specific detection or failure behaviour is specified.
 
+<a name="ssh-host-resolution"></a>
+
 ### 8.5 SSH host resolution
+
+<a name="notation-and-scope"></a>
 
 #### 8.5.1 Notation and scope
 
@@ -1035,6 +1257,8 @@ Thus, `H[X]` is the SSH table within a Nauvim host entry. It is not the surround
 `O(X)` denotes the SSH settings produced by the implementation's processing of the client-side OpenSSH configuration source selected by `config.ssh.config` for the supplied host name `X`, under 8.5.4.
 
 The local-host selection rule in 8.3 shall precede this procedure when Nauvim selects a host Neovim. SSH jump-host resolution shall use the SSH collection `H`.
+
+<a name="native-table-merge"></a>
 
 #### 8.5.2 Native table merge
 
@@ -1055,6 +1279,8 @@ The `host_name` field shall participate in this merge in the same way as the oth
 
 Supplementation from the OpenSSH configuration source is governed by 8.5.4.
 
+<a name="resolution-procedure"></a>
+
 #### 8.5.3 Resolution procedure
 
 For an SSH destination, after applying 8.3 where applicable, Nauvim shall resolve the requested SSH host name `X` as follows:
@@ -1073,6 +1299,8 @@ If `Y == X`, the native merge shall leave the supplied table unchanged. If setti
 
 If a Nauvim entry exists for `Y` but contains no `.ssh` table, it shall not supply native SSH settings. In this SSH-resolution context, `H[Y] == nil`; step 4 shall apply to any remaining absent settings using `O(Y)`.
 
+<a name="openssh-configuration-source"></a>
+
 #### 8.5.4 OpenSSH configuration source, compatibility and errors
 
 When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the file selected by `config.ssh.config` and use it as an OpenSSH configuration source for that host under this subclause.
@@ -1085,6 +1313,8 @@ If an error occurs while reading or processing the required OpenSSH configuratio
 
 Where the implementation processes an `Include` directive, that processing forms part of source evaluation and is not an error fallback.
 
+<a name="application-of-defaults"></a>
+
 #### 8.5.5 Application of defaults
 
 Native host tables shall retain their supplied-field information until the native and OpenSSH supplementation steps are complete. A built-in default shall not be treated as a supplied native value that overrides a setting obtained from either source.
@@ -1093,13 +1323,19 @@ For a native host resolved under steps 2 to 5 of 8.5.3, and for an inline jump h
 
 EXAMPLE If the native settings do not supply `port` and the implementation adopts `2222` from an OpenSSH `Port` directive, the resulting port is `2222`. The native default `22` does not override that adopted value.
 
+<a name="pseudo-terminal-allocation"></a>
+
 #### 8.5.6 Pseudo-terminal allocation
 
 Nauvim shall not request a pseudo-terminal for an SSH session. Its effective terminal-allocation policy shall always be equivalent to `RequestTTY no`.
 
 The Lua configuration shall not provide a `request_tty` field. Any `RequestTTY` directive in an OpenSSH configuration file shall be ignored and shall not alter this policy.
 
+<a name="host-information"></a>
+
 ### 8.6 Host information
+
+<a name="hostinfo-type"></a>
 
 #### 8.6.1 HostInfo type
 
@@ -1127,6 +1363,8 @@ require("nauvim-client-info"): HostInfo
 
 The fields shall provide values directly. They shall not be getter functions.
 
+<a name="values-defaults-and-path-properties"></a>
+
 #### 8.6.2 Values, defaults and path properties
 
 `nauvim-core` shall obtain the values for the environment represented by the `HostInfo`. The specific acquisition methods are unspecified.
@@ -1145,6 +1383,8 @@ The defaults for `project_dirs` shall be those in Table 4, interpreted in the en
 
 The values of `home_dir` and all three path fields within `project_dirs` shall be absolute paths with symbolic links resolved. When `config_file` is non-nil, it shall also be an absolute path with symbolic links resolved. These requirements shall apply to the resulting path values, including any default values used. The method used to obtain or resolve these paths is unspecified.
 
+<a name="client-information-before-configuration-execution"></a>
+
 #### 8.6.3 Client information before configuration execution
 
 The `HostInfo` returned by `require("nauvim-client-info")` shall describe the client environment. Its `config_file` shall identify the selected Nauvim configuration file and shall be non-nil.
@@ -1157,7 +1397,11 @@ Client-information acquisition shall be completed before any code in the selecte
 
 In the failure case that prevents execution, whether the selected Lua configuration file is read or parsed is unspecified.
 
+<a name="neovim-program-and-socket-settings"></a>
+
 ### 8.7 Neovim program and socket settings
+
+<a name="accepted-forms-and-host-information-acquisition"></a>
 
 #### 8.7.1 Accepted forms and host-information acquisition
 
@@ -1192,6 +1436,8 @@ The host-side `HostInfo` passed to either function shall have `config_file == ni
 
 The host environment in this rule shall be the environment in which the selected host Neovim runs or is to run. For a local host Neovim, it is the client environment. For a remote host Neovim, it is the remote host environment.
 
+<a name="neovim-program-interpretation"></a>
+
 #### 8.7.2 Neovim program interpretation
 
 The resolved `nvim` setting shall specify the program used to launch the host Neovim. It may specify Neovim directly or a wrapper program. The host-startup requirements in 6.1 shall apply.
@@ -1210,6 +1456,8 @@ Subject to this required argument suffix and the socket-argument requirements in
 
 Nauvim shall not validate program-path interpretability in advance. Launch failures shall be determined from the errors reported by the execution mechanism and handled in accordance with 6.1.
 
+<a name="socket-path-interpretation-and-argument-boundaries"></a>
+
 #### 8.7.3 Socket path interpretation and argument boundaries
 
 The string supplied for `socket`, or returned by its function, shall not be required to be an absolute path or to have symbolic links resolved.
@@ -1226,7 +1474,11 @@ When execution uses SSH, Nauvim shall escape the socket value correctly so that 
 
 The effect of that escaping on shell-specific expressions, including `~` and variable expansion, is unspecified.
 
+<a name="clipboard-backend-configuration"></a>
+
 ### 8.8 Clipboard backend configuration
+
+<a name="form-defaults-and-timeout-validation"></a>
 
 #### 8.8.1 Form, defaults and timeout validation
 
@@ -1255,6 +1507,8 @@ The specific backend identifiers accepted other than `"auto"` are unspecified. B
 
 EXAMPLE `"xclip"` and `"xsel"` illustrate intended backend identifiers. These examples do not require support for either particular backend.
 
+<a name="availability-validation"></a>
+
 #### 8.8.2 Availability validation
 
 After executing the Lua configuration file, Nauvim shall validate the availability of the selected backend's required dependencies and execution environment in the client environment, or perform backend detection when `"auto"` is selected.
@@ -1263,6 +1517,8 @@ If the required runtime dependencies or execution environment are unavailable, o
 
 Following such a failure, Nauvim shall continue normal editor operation with clipboard functionality unavailable, subject to the environment-change provisions in 8.8.3. The failure shall not prevent Nauvim from operating as a Neovim GUI.
 
+<a name="runtime-errors-and-environment-changes"></a>
+
 #### 8.8.3 Runtime errors and environment changes
 
 Retention or reuse of an availability-validation or automatic-detection result is not guaranteed. Behaviour in response to subsequent changes in the client environment is unspecified.
@@ -1270,6 +1526,8 @@ Retention or reuse of an availability-validation or automatic-detection result i
 Nauvim shall display error messages in the client environment for errors encountered during clipboard operations, including runtime failures of the selected backend. This requirement shall apply irrespective of the result of an earlier validation or detection attempt.
 
 EXAMPLE A dependency can be installed after validation fails, or removed after validation succeeds. Whether and when Nauvim detects such changes, repeats validation or selects another backend are unspecified.
+
+<a name="global-ssh-configuration"></a>
 
 ### 8.9 Global SSH configuration
 
@@ -1292,11 +1550,13 @@ Path values in `SshConf` shall be absolute paths in the client environment. A re
 
 Nauvim may omit permission checks for the paths in `SshConf`. Conformance to the OpenSSH client's permission-checking behaviour is not required. Errors encountered when accessing these files shall be handled under the otherwise applicable requirements of this document, including 8.5.4 for the OpenSSH configuration source.
 
-<a id="810-font-configuration-and-responsibilities"></a>
+<a name="ui-specific-configuration"></a>
 
 ### 8.10 UI-specific configuration
 
 The `ui_opts` setting shall supply application settings specific to the `nauvim` implementation. Neovim UI attachment options shall remain subject to 6.3.1.
+
+<a name="structure-defaults-and-common-validation"></a>
 
 #### 8.10.1 Structure, defaults and common validation
 
@@ -1311,11 +1571,13 @@ An omitted or nil `ui_opts` shall be equivalent to an empty mapping. The default
 
 Every key in `ui_opts` and every non-nil value of `use_ui_opts` shall be a non-empty, valid UTF-8 byte sequence. It shall not begin with `U+FEFF` (ZERO WIDTH NO-BREAK SPACE) and shall not contain `U+0000` (NUL).
 
-Each non-nil entry in `ui_opts` shall be a dictionary with keys of type `string` and values of type `object`, as defined in [Type notation](type-notation.md#46-object). UI-specific option dictionaries shall not contain `bytes` values, tuples or functions at any nesting level.
+Each non-nil entry in `ui_opts` shall be a dictionary with keys of type `string` and values of type `object`, as defined in [Type notation](type-notation.md#object). UI-specific option dictionaries shall not contain `bytes` values, tuples or functions at any nesting level.
 
 Within the shared type requirements, value ranges and representations within UI-specific option dictionaries are unspecified by this document. This includes integer sign and range, and floating-point precision. All string keys and values within option dictionaries shall satisfy the shared `string` requirements, including UTF-8 encoding and the NUL and initial-`U+FEFF` exclusions. The additional non-empty requirement for keys in `ui_opts` and for `use_ui_opts` shall not apply to strings within option dictionaries.
 
 `nauvim-core` shall validate these common requirements for all entries in `ui_opts`, including unselected entries, and for `use_ui_opts`. Validation failures shall be handled under 8.1.2.
+
+<a name="selection-and-delivery"></a>
 
 #### 8.10.2 Selection and delivery
 
@@ -1329,6 +1591,8 @@ Keys shall be matched exactly. A key supplied by `use_ui_opts` need not match a 
 `nauvim-core` shall treat an absent or nil entry at the selection key as an empty dictionary. A non-nil entry shall be a dictionary with string keys; otherwise, configuration validation shall fail under 8.1.2. `nauvim-core` shall make the resulting dictionary available to `nauvim`.
 
 An absent or nil entry shall not itself be a configuration-validation error. When an explicit `use_ui_opts` value has no matching entry or its entry is nil, `nauvim-core` shall use the empty dictionary rather than fall back to lookup using the UI implementation ID. Option dictionaries shall not be merged as part of selection.
+
+<a name="interpretation-and-responsibilities"></a>
 
 #### 8.10.3 Interpretation and responsibilities
 
@@ -1344,13 +1608,19 @@ Font configuration shall be part of the UI-specific option schema. `nauvim` shal
 
 UI-specific options shall not override the requirements of this document.
 
+<a name="other-configuration-details"></a>
+
 ### 8.11 Other configuration details
 
 Annex A illustrates the configuration model, including client information, host entries, security policies, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
 
 Configuration details that remain to be specified shall be distinguished from details expressly designated as unspecified or implementation-dependent.
 
+<a name="build-time-features-and-dependencies"></a>
+
 ## 9 Build-time features and dependencies
+
+<a name="build-time-features"></a>
 
 ### 9.1 Build-time features
 
@@ -1378,6 +1648,8 @@ EXAMPLE Conditional compilation for the `local-forward` module can use `#[cfg(fe
 Requirements for optional functionality apply when the corresponding functionality is enabled in the build.
 
 RPC dispatch shall not distinguish a method excluded by a disabled feature from any other method that the Nauvim engine does not recognize. It shall not maintain a separate disabled-feature method category. Such a method shall be handled as an invalid method under 11.2.3, subject to the client-ID checks in 11.2.5.
+
+<a name="dependency-allocation"></a>
 
 ### 9.2 Dependency allocation
 
@@ -1407,7 +1679,11 @@ EXAMPLE Client-side clipboard access can use utilities such as `xclip` or `pbcop
 
 NOTE `openrussh-client` is developed as a separate project.
 
+<a name="user-interaction-rendering-and-limitations"></a>
+
 ## 10 User interaction, rendering and limitations
+
+<a name="keyboard-and-mouse-interaction"></a>
 
 ### 10.1 Keyboard and mouse interaction
 
@@ -1429,6 +1705,8 @@ The prohibition on delivering Neovim mouse input shall apply regardless of the h
 
 NOTE The prohibited delivery includes sending mouse input using `nvim_input_mouse()` or encoded mouse-event input sequences. Neovim's input interfaces are described in [1].
 
+<a name="input-method-editors"></a>
+
 ### 10.2 Input method editors
 
 Native IME integration is outside the scope of this draft.
@@ -1437,13 +1715,19 @@ Neovim plugins can provide input-method functionality within the host Neovim.
 
 EXAMPLE `skkeleton` provides a plugin-based input method.
 
+<a name="placement-and-rendering-of-neovim-windows-and-grids"></a>
+
 ### 10.3 Placement and rendering of Neovim windows and grids
 
 The arrangement and rendering of Neovim windows and UI grids are implementation-dependent.
 
 The cell-coordinate requirements for `nauvim-plugin::http.open_webview` in 11.5.3 shall apply relative to the specified grid.
 
+<a name="nauvim-plugin-api"></a>
+
 ## 11 Nauvim plugin API
+
+<a name="notation-strings-and-rpc-method-names"></a>
 
 ### 11.1 Notation, strings and RPC method names
 
@@ -1502,6 +1786,8 @@ EXAMPLE With a selected destination, the public call `require("nauvim-plugin.loc
 | `nauvim-plugin::clipboard.copy` | Notification | `nauvim-plugin/clipboard.copy` | `client_id, register, text` |
 | `nauvim-plugin::client.connect` | Notification | `nauvim-plugin/client.connect` | `client_id, host` |
 
+<a name="common-api-rules"></a>
+
 ### 11.2 Common rules
 
 The no-effect rule in 7.3 shall apply to the functions specified in this clause, except for `nauvim-plugin::client.setup` and the clipboard-provider `paste` callbacks specified in 11.6.2.
@@ -1513,6 +1799,8 @@ The no-effect rule in 7.3 shall apply to the functions specified in this clause,
 `nauvim-plugin` shall check its stored client ID and RPC channel ID for `nil` as specified in 7.3. It shall not validate plugin RPC arguments or responses received through RPC.
 
 Plugin RPCs received by `nauvim-core` shall be subject to the client-ID checks in 11.2.5 before method-specific requirements are applied.
+
+<a name="lua-return-convention"></a>
 
 #### 11.2.1 Lua return convention
 
@@ -1529,6 +1817,8 @@ The meaning and type of a successful `ret` shall be as specified for the applica
 An RPC notification shall not produce an RPC response. The `(ret, err)` convention does not establish a response for a notification.
 
 NOTE This is a Lua interface convention. MessagePack-RPC represents a response using separate error and result fields in a single response message. See [7].
+
+<a name="asynchronous-operations-and-resource-handles"></a>
 
 #### 11.2.2 Asynchronous operations and resource handles
 
@@ -1562,6 +1852,8 @@ The specific generation mechanism and algorithm are unspecified.
 
 Handling of resource associations, including repeated operations following cleanup or failure, shall satisfy the idempotency requirements in 11.2.7 and the applicable resource-lifecycle requirements.
 
+<a name="error-reporting"></a>
+
 #### 11.2.3 Error reporting
 
 Nauvim shall return request errors through the convention in 11.2.1 where the applicable method specifies a request error.
@@ -1578,6 +1870,8 @@ Such an error shall not by itself cause the corresponding `local-forward.open_tc
 
 NOTE For a request that returns a resource handle, an `err` value of `nil` reports the absence of a request error; it does not by itself indicate successful completion of the associated asynchronous operation.
 
+<a name="clearing-and-cancellation"></a>
+
 #### 11.2.4 Clearing and cancellation
 
 Each `clear` function shall issue an RPC notification and shall have the effects specified for its module.
@@ -1588,6 +1882,8 @@ Detachment cleanup shall apply to all associated client resources under 6.3, inc
 
 The task-stopping provisions in 6.6.3 apply to application shutdown and, as specified in 6.8.2, connection recovery. They shall not relax the module-specific stopping and deletion requirements of a `clear` operation or the copy-cleanup requirements on detachment in 11.4.5.
 
+<a name="client-id-checks-for-incoming-plugin-rpcs"></a>
+
 #### 11.2.5 Client-ID checks for incoming plugin RPCs
 
 For each incoming plugin RPC, `nauvim-core` shall examine the mandatory first argument, `client_id`, before performing method-specific validation, allocating a resource handle or executing the requested operation.
@@ -1597,6 +1893,8 @@ These requirements shall apply whether the RPC was sent through `nauvim-plugin` 
 `nauvim-core` shall perform no operation if `client_id` is missing, is `nil`, is not an integer, is outside the inclusive range from `0` to `4294967295`, or does not equal the client ID of the receiving Nauvim process.
 
 In each such case, an RPC request shall complete with a nil result and no error, corresponding to the Lua return values `(nil, nil)`. An RPC notification shall have no effect and shall produce no response. These no-effect rules shall take precedence over the applicable method's normal validation, result and operation requirements.
+
+<a name="client-posix-paths-and-confinement"></a>
 
 #### 11.2.6 Client POSIX paths and confinement
 
@@ -1623,6 +1921,8 @@ EXAMPLE 1 The argument values `preview/index.html`, `/preview/index.html` and `/
 
 EXAMPLE 2 An empty path after leading-slash removal, or `P = "."`, designates `T` itself and is rejected. A path resolving outside `T`, including through a symbolic link, is also rejected.
 
+<a name="idempotency-of-handle-operations"></a>
+
 #### 11.2.7 Idempotency of handle operations
 
 Operations addressed by a resource handle shall be idempotent. Applying the same RPC request or notification to the same handle with the same arguments multiple times shall have the same result as applying it once.
@@ -1630,6 +1930,8 @@ Operations addressed by a resource handle shall be idempotent. Applying the same
 Differences caused by events outside `nauvim-core` shall not be subject to this idempotency requirement. Such events include physical disconnection of storage and interference by another process that changes an operation's ability to succeed.
 
 Handle lookup for each invocation shall follow 11.2.2. The idempotency requirement shall not introduce an additional resource-selection condition based on the session of creation or historical allocation identity.
+
+<a name="host-specific-policy-checks"></a>
 
 #### 11.2.8 Host-specific policy checks
 
@@ -1639,7 +1941,11 @@ If the policy does not permit the operation, Nauvim shall neither allocate a res
 
 Handle queries, `clear` notifications and lifecycle cleanup shall follow their existing resource rules regardless of these policies. The policies shall not apply to `http.focus_webview` or to `client` methods. GUI paste shall follow 7.8.
 
+<a name="local-forwarding-api"></a>
+
 ### 11.3 Local forwarding
+
+<a name="opening-a-tcp-forward"></a>
 
 #### 11.3.1 Opening a TCP forward
 
@@ -1665,6 +1971,8 @@ The binding outcome shall remain available through the resource handle for `loca
 
 For forwarding through SSH, each accepted connection shall be forwarded using an SSH channel of type `direct-tcpip`. See [6].
 
+<a name="opening-a-unix-domain-socket-forward"></a>
+
 #### 11.3.2 Opening a Unix domain socket forward
 
 **Signature**
@@ -1688,6 +1996,8 @@ The successful `ret` shall be a resource handle for the forwarding operation. Co
 
 For forwarding through SSH, each accepted connection shall be forwarded using an SSH channel of type `direct-streamlocal@openssh.com`. See [11].
 
+<a name="forwarding-errors"></a>
+
 #### 11.3.3 Forwarding errors
 
 Errors encountered during forwarding operations, including `bind(2)` failures, `accept(2)` failures, failures to connect to the forwarding destination and failures to establish an SSH forwarding channel, shall be Nauvim errors and shall be handled in accordance with 11.2.3. Request-argument validation errors shall retain the request-error handling specified by the applicable method.
@@ -1695,6 +2005,8 @@ Errors encountered during forwarding operations, including `bind(2)` failures, `
 A failure to bind because the requested client port or socket endpoint is already in use shall not be returned as a request error by `local-forward.open_tcp` or `local-forward.open_socket`.
 
 Binding failures queried through `local-forward.get_port` shall be returned as request errors in accordance with 11.3.5, including failures already reported as Nauvim errors.
+
+<a name="clearing-a-forward"></a>
 
 #### 11.3.4 Clearing a forward
 
@@ -1717,6 +2029,8 @@ If Nauvim processes the notification before the associated binding operation has
 The client-side Unix domain socket pathname created by a forwarding operation shall be an associated resource. Nauvim shall remove that pathname when clearing the forward and during applicable detachment, shutdown or connection-recovery cleanup.
 
 If no associated local forward or pending forwarding operation exists, the notification shall have no effect.
+
+<a name="obtaining-the-assigned-forwarding-port"></a>
 
 #### 11.3.5 Obtaining the assigned forwarding port
 
@@ -1744,7 +2058,11 @@ NOTE 1 The non-blocking requirement applies to Nauvim. The RPC response can rema
 
 NOTE 2 A successful response reports successful client-side binding and the assigned port. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [15].
 
+<a name="filesystem-api"></a>
+
 ### 11.4 Filesystem operations
+
+<a name="copy-request-and-transport"></a>
 
 #### 11.4.1 Copy request and transport
 
@@ -1767,6 +2085,8 @@ Within the RPC request, Nauvim shall interpret and validate `client_file` in acc
 The successful `ret` shall be a resource handle associated with the copy operation and its client-side destination. Completion of the copy before returning the handle is not guaranteed.
 
 When the host is accessed through SSH, Nauvim shall use the SFTP subsystem for host-side file access, metadata retrieval, directory enumeration and symbolic-link inspection required by the copy operation. See [12].
+
+<a name="source-types-and-destination-replacement"></a>
 
 #### 11.4.2 Source types and destination replacement
 
@@ -1794,6 +2114,8 @@ When an existing destination directory is replaced, Nauvim shall delete it recur
 
 NOTE Source symbolic-link resolution copies the target's contents. It does not reproduce the source symbolic link as a client-side symbolic link. Relative symbolic-link resolution is described in [13].
 
+<a name="recursive-traversal-and-copy-errors"></a>
+
 #### 11.4.3 Recursive traversal and copy errors
 
 During recursive directory copying, Nauvim shall copy regular files and directories and shall resolve symbolic links to those types using the rules in 11.4.2. Other entry types shall be ignored.
@@ -1807,6 +2129,8 @@ Insufficient permissions to read a source regular file, enumerate a source direc
 A failure to resolve or inspect a source symbolic-link target shall be handled as an error, rather than as an entry of an unsupported type to be ignored.
 
 NOTE Directory enumeration requires read access. Looking up entries and traversing directories requires search access, represented by execute permission for directories on the target Unix-like platforms. These access requirements are distinct from executing a regular file. See [13] and [14].
+
+<a name="clearing-a-copy-destination"></a>
 
 #### 11.4.4 Clearing a copy destination
 
@@ -1828,6 +2152,8 @@ The following rules shall apply in the order given:
 
 Completion or failure of the copy operation shall not by itself discard the association needed to clear its destination or perform detachment cleanup.
 
+<a name="cleanup-on-detachment"></a>
+
 #### 11.4.5 Cleanup on detachment
 
 On detachment, Nauvim shall clean up every copy operation and associated client-side destination belonging to the detached attachment.
@@ -1842,13 +2168,19 @@ Detachment cleanup shall retain the process temporary directory itself in accord
 
 NOTE The primary intended use of `filesystem.copy` is to create temporary client-side files or directories.
 
+<a name="interference-between-copy-destinations"></a>
+
 #### 11.4.6 Interference between copy destinations
 
 Behaviour is undefined when distinct copy operations, or their associated destination-cleanup operations, interfere through identical destination paths or destination paths in an ancestor-descendant relationship.
 
 This rule shall apply within an attachment and across attachments, including when cleanup belonging to an earlier attachment overlaps copying by a new attachment during session switching.
 
+<a name="http-plugin-api"></a>
+
 ### 11.5 HTTP services and GUI access
+
+<a name="serving-a-client-side-file-or-directory"></a>
 
 #### 11.5.1 Serving a client-side file or directory
 
@@ -1898,6 +2230,8 @@ When `http2` is false, the server shall serve HTTP/1.1 only. When `http2` is tru
 
 Whether the server handles multiple HTTP requests simultaneously is implementation-dependent.
 
+<a name="obtaining-the-assigned-server-port"></a>
+
 #### 11.5.2 Obtaining the assigned server port
 
 **Signature**
@@ -1923,6 +2257,8 @@ All errors encountered in resolving the handle, waiting for binding or obtaining
 NOTE 1 The non-blocking requirement applies to Nauvim. The RPC response can remain pending while Nauvim processes other work.
 
 NOTE 2 A successful response reports successful binding and the assigned port. It does not indicate that HTTP request processing has begun. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [15].
+
+<a name="open-webview"></a>
 
 #### 11.5.3 Opening a window for an HTTP(S) URL
 
@@ -1991,6 +2327,8 @@ Except for this acceptance requirement, the public key infrastructure (PKI) and 
 
 NOTE The field name `url` describes the HTTP(S) resource to be accessed. URL terminology is described in [16].
 
+<a name="clearing-an-http-server-or-window"></a>
+
 #### 11.5.4 Clearing an HTTP server or window
 
 **Signature**
@@ -2011,7 +2349,11 @@ If no associated server or window exists and there is no pending `serve_file` st
 
 NOTE The no-effect rule also applies when the window requested by `open_webview` does not yet exist.
 
+<a name="http-request-and-response-rules"></a>
+
 #### 11.5.5 HTTP request and response rules
+
+<a name="protocol-upgrades"></a>
 
 ##### 11.5.5.1 Protocol upgrades
 
@@ -2023,6 +2365,8 @@ For HTTP/2, the protocol-level requirements for connection-specific fields and m
 
 NOTE HTTP/2 prohibits the `Connection` header field itself. Ignoring an upgrade attempt at the application level does not make a malformed HTTP/2 message valid.
 
+<a name="request-methods"></a>
+
 ##### 11.5.5.2 Request methods
 
 The file-serving interface shall accept `GET` requests.
@@ -2032,6 +2376,8 @@ When `http2` is true, the server shall also accept any additional method whose a
 Methods other than `GET` and those covered by the preceding exception shall not be accepted by the file-serving interface. Whether requests using those methods are ignored or rejected with an error is unspecified.
 
 NOTE The method restriction applies to HTTP requests handled by the file-serving interface. It does not disable processing of the HTTP/2 connection preface or protocol-control frames.
+
+<a name="url-path-mapping-and-confinement"></a>
 
 ##### 11.5.5.3 URL-path mapping and confinement
 
@@ -2062,6 +2408,8 @@ NOTE 1 When `client_file` resolves to a directory, `/` maps to that directory an
 
 NOTE 2 Relative URL references can be resolved by the requesting client before an HTTP request is formed. The server's mapping and confinement rules apply to the resulting target; the presence of a `..` segment alone does not establish that the filesystem target is outside the serving root.
 
+<a name="file-responses-and-content-headers"></a>
+
 ##### 11.5.5.4 File responses and content headers
 
 The status codes in this subclause apply to HTTP responses sent to the HTTP client. For requests handled by the file-serving interface, the server shall apply the error-response rules in Table 10.
@@ -2090,6 +2438,8 @@ Handling of file-read or transmission errors after a response has begun, includi
 
 NOTE Header field names use conventional capitalization in this document. HTTP/2 encodes field names in lowercase, as specified in RFC 9113, 8.2.
 
+<a name="cross-origin-response-headers"></a>
+
 ##### 11.5.5.5 Cross-origin response headers
 
 Every HTTP response emitted by the server shall include an `Access-Control-Allow-Origin` header field, including the error responses specified in Table 10.
@@ -2103,6 +2453,8 @@ EXAMPLE `Access-Control-Allow-Origin: https://example.test:8443`
 NOTE 1 A serialized origin identifies the scheme, host and applicable port; it does not include a URL path. The CORS header syntax is described in [17].
 
 NOTE 2 Selecting only explicitly trusted origins and avoiding unchecked reflection of the request's `Origin` value are security practices described in [20].
+
+<a name="path-characters-and-encoding"></a>
 
 ##### 11.5.5.6 Path characters and encoding
 
@@ -2118,6 +2470,8 @@ NOTE 1 The character-support requirement concerns characters represented in path
 
 NOTE 2 Unicode normalization is distinct from the URL/URI reference-resolution and encoding rules required by this subclause and 11.5.5.3.
 
+<a name="url-fragments"></a>
+
 ##### 11.5.5.7 URL fragments
 
 URLs for resources served by `http.serve_file` shall support fragment identifiers in accordance with RFC 3986, 3.5.
@@ -2125,6 +2479,8 @@ URLs for resources served by `http.serve_file` shall support fragment identifier
 The fragment component shall be excluded from the HTTP target URI and from the filesystem target used by the server, in accordance with RFC 9110, 7.1. When such a URL is opened through `http.open_webview`, the presentation component shall preserve and process the fragment in accordance with the applicable representation semantics.
 
 EXAMPLE For `/a%23b.html#section`, the server-side path identifies `a#b.html` beneath a directory serving root. The fragment identifier `section` is processed by the client and is not appended to the filesystem path.
+
+<a name="focus-webview"></a>
 
 #### 11.5.6 Focusing an open Webview window
 
@@ -2140,7 +2496,11 @@ Nauvim shall look up `handle` as specified in 11.2.2. If it identifies an open w
 
 If moving focus fails, Nauvim shall report a Nauvim error and leave the window open. The failed operation shall have no other effect.
 
+<a name="clipboard-provider"></a>
+
 ### 11.6 Clipboard provider
+
+<a name="copying-text"></a>
 
 #### 11.6.1 Copying text
 
@@ -2166,6 +2526,8 @@ For a valid notification permitted by 11.2.8, `nauvim-core` shall pass `text` to
 The notification shall produce no RPC response. The function shall return `nil`; its return shall not indicate completion of the backend operation.
 
 The no-effect rule in 7.3 shall apply to this function. Backend availability and clipboard-operation errors shall follow 8.8.
+
+<a name="provider-table"></a>
 
 #### 11.6.2 Provider table
 
@@ -2193,7 +2555,11 @@ EXAMPLE The provider can be selected in the host Neovim's Lua configuration by t
 vim.g.clipboard = require("nauvim-plugin.clipboard").provider
 ```
 
+<a name="client-api"></a>
+
 ### 11.7 Client registration, RPC destination selection and session switching
+
+<a name="internal-setup-entry-point"></a>
 
 #### 11.7.1 Internal setup entry point
 
@@ -2217,6 +2583,8 @@ If no attached client matches the constructed name, or the setup invocation othe
 
 The setup-failure rules in 7.2.2 shall apply. Failure shall leave normal Neovim GUI operation unaffected.
 
+<a name="single-destination-and-replacement"></a>
+
 #### 11.7.2 Single destination and replacement
 
 `nauvim-plugin` shall retain at most one selected RPC channel ID and at most one selected client ID at a time. Both stored identifiers shall initially be `nil`. Its internal destination shall consist of the selected channel ID and its associated client ID, or both identifiers shall be `nil`.
@@ -2229,6 +2597,8 @@ While another client is selected, resource handles belonging to a previously sel
 
 NOTE The concurrent-instance limitations in 6.7 apply independently of these destination-selection rules.
 
+<a name="clearing-the-destination-on-uileave"></a>
+
 #### 11.7.3 Clearing the destination on UILeave
 
 When handling `UILeave`, `nauvim-plugin` shall compare the event's channel ID with its stored channel ID. If they are equal, it shall set both the stored channel ID and the stored client ID to `nil`. Otherwise, it shall leave both stored identifiers unchanged.
@@ -2238,6 +2608,8 @@ The event's channel ID shall be the `chan` value supplied by Neovim in `v:event`
 This document does not guarantee that `UILeave` occurs for every UI disconnection. Retention of a stale channel ID and its associated client ID when the corresponding event does not occur is permitted.
 
 The interface provides no separate means of checking whether a stored channel ID is stale. `nauvim-plugin` shall use non-nil stored identifiers without a prior channel-staleness check. Errors encountered when sending through that channel shall follow 11.2.3.
+
+<a name="connecting-to-another-host"></a>
 
 #### 11.7.4 Connecting to another host
 
@@ -2257,9 +2629,13 @@ The no-effect rule in 7.3 shall apply before either action. If either stored ide
 
 Nauvim shall perform the welcome-page transition and new connection attempt in accordance with 6.5. Its corresponding core functionality shall be available unconditionally under 9.1.
 
+<a name="configuration-examples"></a>
+
 ## Annex A — Configuration examples
 
 **(informative)**
+
+<a name="configuration-examples-overview"></a>
 
 ### A.1 General
 
@@ -2268,6 +2644,8 @@ This annex illustrates the configuration model specified in Clause 8 and the rem
 The example uses the `HostInfo` table returned by the `nauvim-client-info` module injected by `nauvim-core`. Its fields describe the client environment, and `client.config_file` is a non-nil path to the selected Nauvim configuration file.
 
 The client-side account name comes from `client.user`. Its role is separate from that of the user name used to authenticate to the SSH server.
+
+<a name="example-configuration"></a>
 
 ### A.2 Example configuration
 
@@ -2342,6 +2720,8 @@ return {
 }
 ```
 
+<a name="example-configuration-interpretation"></a>
+
 ### A.3 Interpretation of the example
 
 The `"local"` entry has no SSH settings and therefore designates a local host Neovim. The `"my-host"` entry includes SSH settings and is selected for automatic startup connection by the top-level `default_host` setting.
@@ -2359,6 +2739,8 @@ The local entry's empty `policies` table grants no permissions. The remote entry
 The top-level `clipboard = "auto"` explicitly selects the default backend-selection mode. The global SSH path defaults are specified in 8.9.
 
 For `"my-host"`, the SSH lookup name is `"my-host.com"`. The example contains no native SSH entry with that name, so resolution reads `ssh.config` for `"my-host.com"` and uses it for supplementation under 8.5.4, preserving the explicitly supplied SSH fields. The concrete inheritance of OpenSSH-derived settings is unspecified. An error in that required OpenSSH-source operation fails resolution. The example does not designate a fallback for a missing or unreadable SSH configuration file.
+
+<a name="example-ssh-merge"></a>
 
 ### A.4 SSH merge example
 
@@ -2404,6 +2786,8 @@ Resolving `work` does not recursively resolve the `base` table, read OpenSSH set
 
 If an existing native SSH table omits `host_name`, its supplied alias is used for lookup. The native merge with that same table leaves its supplied settings unchanged. If settings remain absent, resolution uses the OpenSSH configuration for that alias under 8.5.4. Native defaults are applied last.
 
+<a name="example-shallow-table-merge"></a>
+
 ### A.5 Shallow table merge
 
 The following generic tables illustrate the merge operation specified in 8.5.2:
@@ -2417,6 +2801,8 @@ local R = { a = 1, b = { d = 3 }, f = { g = 6 } }
 ```
 
 The field `a` is retained from `A` because `B` does not supply it. The entire `b` table is replaced, so `c` is not retained. The scalar value of `f` is replaced by the table supplied by `B`.
+
+<a name="example-configuration-module-search-root"></a>
 
 ### A.6 Configuration module search root
 
@@ -2433,6 +2819,8 @@ Table A.2 illustrates the root selection specified in 8.1.1. The paths in the fi
 For either of the first two configuration files, the added templates allow a lookup of `require("another.module")` to search `/work/lua/another/module.lua` and then `/work/lua/another/module/init.lua` before the previously configured Lua-file templates. The configuration filename does not affect the root selection.
 
 For the third configuration file, the same lookup searches `/work/config/lua/another/module.lua` and then `/work/config/lua/another/module/init.lua` before the previously configured Lua-file templates.
+
+<a name="example-neovim-program-specifications"></a>
 
 ### A.7 Neovim program specifications
 
@@ -2484,6 +2872,8 @@ For the shell-wrapper example, the corresponding sequence is:
 
 These examples illustrate configuration values and the required argument suffix. Subject to that suffix and the socket-argument requirements, their concrete expansion and execution interpretation, including the handling of the shell expression and environment entries, are unspecified as stated in 8.7.2.
 
+<a name="example-clipboard-backend-configuration"></a>
+
 ### A.8 Clipboard backend configuration
 
 The following configuration excerpt uses the table form to supply automatic backend selection and an explicit timeout:
@@ -2501,6 +2891,8 @@ return {
 ```
 
 The timeout value in this example is illustrative and does not establish a default. Omitting `clipboard` or using `clipboard = "auto"` selects automatic detection under 8.8.1.
+
+<a name="example-ui-specific-configuration"></a>
 
 ### A.9 UI-specific configuration
 
@@ -2539,6 +2931,8 @@ return {
 
 Here, `nauvim-core` selects `ui_opts["some-alias"]` regardless of the supplied UI implementation ID. This allows a user-chosen key when UI implementations use conflicting IDs. The empty dictionary's interpretation is defined by the running UI implementation's schema. Removing the `"some-alias"` entry or setting it to nil also results in an empty dictionary; it does not cause lookup using the UI implementation ID.
 
+<a name="example-unrestricted-origins-and-forwarding-endpoints"></a>
+
 ### A.10 Unrestricted origins and forwarding endpoints
 
 The following host-entry fragment permits every HTTP(S) origin and every forwarding endpoint accepted by the corresponding plugin methods:
@@ -2552,7 +2946,7 @@ policies = {
 }
 ```
 
-<a id="annex-c--openssh-directive-correspondences"></a>
+<a name="openssh-directive-correspondences"></a>
 
 ## Annex B — OpenSSH directive correspondences
 
