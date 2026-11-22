@@ -2,7 +2,7 @@
 
 A graphical user interface for Neovim, with persistent local and remote editing sessions.
 
-The design keeps Neovim running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, port forwarding, temporary file copies and clipboard access.
+The design keeps host Neovim processes running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, local forwarding, temporary copies of files and directories, and clipboard access.
 
 This README is an informative guide to the [Nauvim specification](specification.md), version **1.0.0**. Specification versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
@@ -25,27 +25,27 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 | [3 Terms and definitions](specification.md#terms-and-definitions) | Host and client roles; sessions, connections, attachments, identifiers and resources. |
 | [4 Architecture](specification.md#architecture) | Responsibilities of the four repositories and the boundary between the engine, plugin and UI backend. |
 | [5 Environments and compatibility](specification.md#supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
-| [6 Session management](specification.md#session-management) | Startup, ownership, reattachment, host switching, shutdown, resource cleanup and connection recovery. |
+| [6 Session management](specification.md#session-management) | Startup, ownership, reattachment, session switching, shutdown, resource cleanup and connection recovery. |
 | [7 Plugin interface and client operations](specification.md#plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
 | [8 Configuration](specification.md#configuration) | Lua loading, host selection, host-specific security policies, SSH resolution, host information, program arguments, clipboard backends and UI-specific options. |
 | [9 Build-time features and dependencies](specification.md#build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
 | [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
-| [11 Nauvim plugin API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
+| [11 `nauvim-plugin` API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
 | [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
 | [Annex B — OpenSSH correspondences](specification.md#openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
 | [Bibliography](specification.md#bibliography) | Supporting Neovim, protocol, Lua and operating-system documentation. |
 
 ## Plugin API shortcuts
 
-The [common rules](specification.md#common-api-rules) define `(ret, err)` results, asynchronous handles, client-ID and host policy checks, path confinement and idempotent handle operations. Module-specific contracts follow:
+The [common rules](specification.md#common-api-rules) define `(ret, err)` results, resource handles for asynchronous operations, client-ID and host-specific policy checks, path confinement and idempotent handle operations. Module-specific contracts follow:
 
 | Module | Operations |
 | --- | --- |
-| [`local-forward`](specification.md#local-forwarding-api) | Open TCP or Unix domain socket forwards, obtain an assigned TCP port and clear a forward. |
-| [`filesystem`](specification.md#filesystem-api) | Copy host files into the client's temporary directory and cancel or remove copied resources. |
+| [`local-forward`](specification.md#local-forwarding-api) | Open TCP or Unix domain socket forwards, query the bound TCP port and clear a forward. |
+| [`filesystem`](specification.md#filesystem-api) | Copy files and directories from the host environment into the process temporary directory, cancel copy operations and clear their destinations. |
 | [`http`](specification.md#http-plugin-api) | Serve files over HTTP(S), query the bound port, open or focus GUI windows and navigate them to HTTP(S) URLs. |
 | [`clipboard`](specification.md#clipboard-provider) | Supply a Neovim clipboard provider backed by the client system clipboard. |
-| [`client`](specification.md#client-api) | Register the RPC destination, clear stored identifiers on `UILeave` and request a host switch. |
+| [`client`](specification.md#client-api) | Register the RPC destination, clear stored identifiers on `UILeave` and request a session switch. |
 
 ## Reading the requirements
 
