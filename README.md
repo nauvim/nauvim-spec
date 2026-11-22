@@ -4,7 +4,7 @@ A graphical user interface for Neovim, with persistent local and remote editing 
 
 The design keeps host Neovim processes running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, local forwarding, temporary copies of files and directories, and clipboard access.
 
-This README is an informative guide to the [Nauvim specification](specification.md), version **1.0.0**. Specification versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+This README is an informative guide to the [Nauvim specification](specification.md), version **1.0.1**. Specification versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
 [Type notation](type-notation.md) defines the shared abstract types, representation rules and annotation syntax used by the specification.
 
