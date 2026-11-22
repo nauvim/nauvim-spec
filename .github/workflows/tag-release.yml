@@ -1,0 +1,84 @@
+name: Tag specification release
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Merged specification release PR number
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: tag-specification-${{ github.event.pull_request.number || inputs.pr }}
+
+jobs:
+  tag:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release/')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tag the merged specification
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Expected a pull request number." >&2
+            exit 1
+          fi
+
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          if ! head=$(jq -er --arg repo "$GITHUB_REPOSITORY" '
+            select(.merged and .base.ref == "main" and .head.repo.full_name == $repo)
+            | .head.ref
+          ' <<< "$pr"); then
+            echo "PR #$PR_NUMBER must be merged into main from this repository." >&2
+            exit 1
+          fi
+
+          if [[ ! "$head" =~ ^release/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "PR #$PR_NUMBER must use a release/vX.Y.Z branch." >&2
+            exit 1
+          fi
+
+          tag=${head#release/}
+          version=${tag#v}
+          sha=$(jq -er '.merge_commit_sha' <<< "$pr")
+
+          read_file() {
+            gh api "repos/$GITHUB_REPOSITORY/contents/$1?ref=$sha" --jq '.content' | base64 --decode
+          }
+
+          specification=$(read_file specification.md)
+          readme=$(read_file README.md)
+          if ! grep -Fxq -- "**Specification version $version**" <<< "$specification" ||
+              ! grep -Fq -- "version **$version**." <<< "$readme"; then
+            echo "The merged specification and README must both declare version $version." >&2
+            exit 1
+          fi
+
+          ref="refs/tags/$tag"
+          matching_refs=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag")
+          if jq -e --arg ref "$ref" 'any(.[]; .ref == $ref)' <<< "$matching_refs" > /dev/null; then
+            existing=$(gh api "repos/$GITHUB_REPOSITORY/commits/tags/$tag" --jq '.sha')
+            if [[ "$existing" != "$sha" ]]; then
+              echo "Tag $tag points to $existing. Expected $sha." >&2
+              exit 1
+            fi
+            echo "Tag $tag already points to $sha."
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="$ref" -f sha="$sha" --jq '.ref'
+          fi

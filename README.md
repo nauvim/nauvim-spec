@@ -62,9 +62,18 @@ Use `<kind>/<topic>` for branch names. Choose the kind by the meaning of the cha
 | `spec` | Add or change requirements, APIs, defaults or behaviour, or resolve specification contradictions. | `spec/rpc-response-validation` |
 | `docs` | Improve wording, terminology, structure or links without changing the specification's meaning. | `docs/utf8-terminology` |
 | `chore` | Change repository maintenance rules or settings. | `chore/agent-instructions` |
+| `release` | Prepare a specification release. | `release/v1.0.2` |
 
-- Write a short, descriptive topic using lowercase English words separated by hyphens. Use a single `/` between the kind and topic.
+- Use a single `/` between the kind and topic. Use `release/vX.Y.Z` for releases. For other branches, use a short, descriptive topic with lowercase English words separated by hyphens.
 - Classify the change by its meaning, not by the file being edited. A typo correction in `specification.md` uses `docs`; an API change accompanied by README updates uses `spec`.
-- An issue number may precede the topic, for example `spec/42-session-recovery`. Issue numbers are optional.
+- An issue number may precede a descriptive topic, for example `spec/42-session-recovery`. Issue numbers are optional.
 
 Create a branch from `main` for each change and delete it after merging.
+
+## Releasing the specification
+
+In the local `nauvim-spec` Codex project, invoke
+[`$nauvim-release`](.agents/skills/nauvim-release/SKILL.md) with a version such as
+`v1.0.2`. Merge the release PR to create the specification tag. The skill
+coordinates the follow-up PRs and the core crate publication. Use the same
+request to resume after a merge or interruption.
