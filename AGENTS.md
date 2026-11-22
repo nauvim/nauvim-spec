@@ -43,9 +43,6 @@ their current request, unless they request another language.
 - Before reporting an omission, check whether definitions, common rules,
   precedence rules, error handling or lifecycle requirements already determine
   the result. A consequence of an existing rule is not a new open decision.
-- Keep Annex B limited to genuinely undecided matters. Reconcile it with the
-  normative text and the latest instructions; its existing contents can become
-  outdated as decisions are made.
 - Do not add APIs, validation, retries, fallback behaviour, waiting requirements
   or completion guarantees merely to make a description appear more complete.
   Add them only when justified by the requested change or existing requirements.
