@@ -31,7 +31,7 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 | [9 Build-time features and dependencies](specification.md#build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
 | [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
 | [11 `nauvim-plugin` API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
-| [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
+| [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, startup host selection, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
 | [Annex B — OpenSSH correspondences](specification.md#openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
 | [Bibliography](specification.md#bibliography) | Supporting Neovim, protocol, Lua and operating-system documentation. |
 
