@@ -1,6 +1,6 @@
 # Nauvim — Graphical user interface for Neovim
 
-**Specification version 1.1.0**
+**Specification version 1.2.0**
 
 <a name="scope"></a>
 
