@@ -931,7 +931,7 @@ Additional dependencies for clipboard integration shall be subject to the client
 
 Nauvim shall permit the user to specify the path of its Lua configuration file. The mechanism by which the user specifies that path is unspecified.
 
-When the user does not specify a path, the default shall be `$XDG_CONFIG_HOME/nauvim/init.lua` in the client environment.
+When the user does not specify a path, the default shall be `$XDG_CONFIG_HOME/nauvim/init.lua` in the client environment. If the file is absent, startup shall follow 8.1.2.
 
 The configuration shall be evaluated by the Nauvim engine in the client environment.
 
@@ -969,7 +969,9 @@ NOTE 2 These templates follow Neovim's local Lua-module layout and search order.
 
 #### 8.1.2 Configuration-loading failures
 
-If loading the Nauvim Lua configuration fails, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
+If the user omits the Lua configuration path and the file at the default path specified in 8.1 does not exist, Nauvim shall continue startup with the default configuration values without reporting a configuration-loading error for the missing file.
+
+In all other cases, if loading the Nauvim Lua configuration fails, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
 
 The fallback shall use the Nauvim default configuration. Defaults expressly specified in this document shall apply; the remaining default values shall be specified separately. Where this document specifies a field-specific fallback or recovery rule, that rule shall apply.
 
