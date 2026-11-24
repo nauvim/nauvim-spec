@@ -6,11 +6,11 @@
 
 ## 1 Scope
 
-This document specifies the architecture and behaviour of Nauvim, a graphical user interface (GUI) for Neovim.
+This document specifies the architecture and behaviour of Nauvim, a system that provides a graphical user interface (GUI) for Neovim.
 
 It covers local and remote session management, remote procedure call (RPC) communication with host Neovims, plugin interfaces, client operations, configuration, build-time features and dependencies. It also specifies the initial platform targets and user interaction model.
 
-This document applies to the initial Flutter implementation and the components that are independent of the user interface (UI). Native input method editor (IME) integration is outside its scope.
+This document applies to the initial `nauvim` application, which uses Flutter, and the components that are independent of the user interface (UI). Native input method editor (IME) integration is outside its scope.
 
 Clause 8 defines the scope of the configuration interface. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
 
@@ -63,7 +63,7 @@ machine or execution environment in which a *host Neovim* ([3.1](#host-neovim)) 
 
 process that implements the Neovim UI protocol and provides a user interface for a *host Neovim* ([3.1](#host-neovim))
 
-Note 1 to entry: Nauvim is one client Neovim. Other implementations also exist.
+Note 1 to entry: A Nauvim process is a client Neovim. Other implementations also exist.
 
 <a name="client-environment"></a>
 
@@ -277,13 +277,13 @@ concrete implementation of rendering and GUI functionality using a framework or 
 
 ### 3.33 GUI window
 
-window managed by Nauvim as part of the client application's graphical user interface
+window managed by `nauvim` as part of its graphical user interface
 
 <a name="gui-tab"></a>
 
 ### 3.34 GUI tab
 
-tab managed by Nauvim as part of the client application's graphical user interface
+tab managed by `nauvim` as part of its graphical user interface
 
 <a name="neovim-window"></a>
 
@@ -403,14 +403,13 @@ Note 1 to entry: A UI implementation ID identifies an application implementation
 
 ### 4.1 Repository allocation
 
-The project shall comprise the following repositories:
+The Nauvim project shall comprise the following repositories.
 
-- `nvim-rpc`;
-- `nauvim-core`;
-- `nauvim-plugin`;
-- `nauvim`.
-
-Their responsibilities shall be allocated as specified in 4.2 to 4.5.
+- `nauvim-spec` contains this specification and its supplements.
+- `nvim-rpc` provides the supporting Rust RPC library specified in 4.2.
+- `nauvim-core` provides the UI-independent engine specified in 4.3.
+- `nauvim-plugin` provides the host-side Lua interface specified in 4.4.
+- `nauvim` provides the client application specified in 4.5.
 
 <a name="nvim-rpc"></a>
 
@@ -448,7 +447,7 @@ local nauvim = require("nauvim-plugin")
 
 ### 4.5 `nauvim`
 
-`nauvim` shall contain the concrete application implementation using `nauvim-core` and a UI backend.
+`nauvim` shall implement the client application layer of Nauvim. It shall use `nauvim-core` and a UI backend.
 
 It shall determine the concrete methods for creating GUI windows and GUI tabs and shall be responsible for their actual creation and management.
 
@@ -608,11 +607,11 @@ NOTE UI options include capability switches and options that convey descriptive 
 
 ### 6.4 Welcome page and automatic connection
 
-Nauvim shall provide a welcome page for selecting a connection destination.
+`nauvim` shall provide a welcome page for selecting a connection destination.
 
 From the welcome page, the user shall be able to start a new session or reattach to an eligible existing session.
 
-After attachment, Nauvim shall display the host Neovim's UI.
+After attachment, `nauvim` shall display the host Neovim's UI.
 
 At application startup, Nauvim shall use `hosts` together with `default_host` to select between automatic connection and waiting on the welcome page, as specified in 8.2.1. When that procedure requires user selection, the available choices and their presentation shall follow that subclause. The concrete host-selection interaction is otherwise unspecified.
 
@@ -805,7 +804,7 @@ Nauvim shall call `nvim_set_client_info` during each initial UI attachment and r
 
 Each Nauvim process shall have one client ID, generated randomly at process startup. The client ID shall be an unsigned 32-bit integer, from `0` to `4294967295` inclusive. It shall remain unchanged for the lifetime of the process, including across initial attachments, reattachments and connections to different hosts.
 
-Behaviour is undefined if distinct Nauvim processes are assigned the same client ID, whether their lifetimes overlap or occur at different times. Neither Nauvim nor `nauvim-plugin` shall perform any checks to determine whether a generated client ID collides with a client ID assigned to another process.
+Behaviour is undefined if distinct Nauvim processes are assigned the same client ID, whether their lifetimes overlap or occur at different times. The Nauvim process and `nauvim-plugin` shall perform no checks to determine whether a generated client ID collides with a client ID assigned to another process.
 
 The generation method should produce a sufficiently uniform random distribution over the full unsigned 32-bit range, with the design objective of avoiding accidental collisions during an individual user's lifetime of Nauvim use. This is a strong recommendation; it does not establish a guarantee that collisions cannot occur.
 
@@ -1567,7 +1566,7 @@ After executing the Lua configuration file, Nauvim shall validate the availabili
 
 If the required runtime dependencies or execution environment are unavailable, or automatic detection fails, Nauvim shall display an error message in the client environment after configuration execution.
 
-Following such a failure, Nauvim shall continue normal editor operation with clipboard functionality unavailable, subject to the environment-change provisions in 8.8.3. The failure shall not prevent Nauvim from operating as a Neovim GUI.
+Following such a failure, Nauvim shall continue normal editor operation with clipboard functionality unavailable, subject to the environment-change provisions in 8.8.3. The failure shall not prevent the Nauvim process from operating as a Neovim GUI.
 
 <a name="runtime-errors-and-environment-changes"></a>
 
@@ -1737,7 +1736,7 @@ NOTE `openrussh-client` is developed as a separate project.
 
 ### 10.1 Keyboard and mouse interaction
 
-Nauvim shall accept keyboard and mouse input.
+`nauvim` shall accept keyboard and mouse input.
 
 When clipboard functionality is enabled, `nauvim` should provide key bindings that users would find natural on the client platform to invoke the GUI paste functionality of `nauvim-core` specified in 7.8. The specific key bindings are unspecified.
 
@@ -1745,9 +1744,9 @@ EXAMPLE `CTRL-V`, `CTRL-SHIFT-V` and `CMD-V` illustrate possible paste key bindi
 
 Nauvim shall not transmit mouse input to the host Neovim as Neovim mouse events or otherwise deliver that input through Neovim's mouse-input facilities.
 
-Nauvim may use mouse input for GUI operations, including text selection, copying and actions invoked by clicking. Such actions may send RPC requests or notifications to the host Neovim, provided that they do not deliver mouse input through Neovim's mouse-input facilities.
+`nauvim` may use mouse input for GUI operations, including text selection, copying and actions invoked by clicking. Such actions may send RPC requests or notifications to the host Neovim, provided that they do not deliver mouse input through Neovim's mouse-input facilities.
 
-If Nauvim implements mouse-based text selection in Neovim UI grids, selection should be independent for each grid. Each selection should include only text within its target grid.
+If `nauvim` implements mouse-based text selection in Neovim UI grids, selection should be independent for each grid. Each selection should include only text within its target grid.
 
 These requirements shall also apply to GUI windows opened by `nauvim-plugin::http.open_webview`.
 
@@ -2097,7 +2096,7 @@ This function shall issue an RPC request using the method name `nauvim-plugin/lo
 
 Nauvim shall resolve `handle` to a TCP-forwarding operation or TCP forward created through `local-forward.open_tcp`. If the handle cannot be resolved to such an operation or forward, the request shall return a request error. This includes handles for Unix domain socket forwards and resources created by other interfaces.
 
-If binding has not yet completed or failed, Nauvim shall wait for the outcome of the associated binding operation. This waiting shall be non-blocking for Nauvim: the application shall remain able to process UI events, RPC messages and other work while the request is pending.
+If binding has not yet completed or failed, Nauvim shall wait for the outcome of the associated binding operation. This wait shall be non-blocking for the Nauvim process, which shall remain able to process UI events, RPC messages and other work while the request is pending.
 
 If Nauvim processes the corresponding `local-forward.clear` notification while this request is waiting, it shall immediately complete the request with a nil result and no error. The Lua return values shall be `(nil, nil)`. Completion of binding or cleanup shall not be awaited before completing that request.
 
@@ -2107,7 +2106,7 @@ If binding has failed, `get_port` shall return a request error. This requirement
 
 All errors encountered in resolving the handle, waiting for binding or obtaining the bound port shall be returned as request errors in accordance with 11.2.1.
 
-NOTE 1 The non-blocking requirement applies to Nauvim. The RPC response can remain pending while Nauvim processes other work.
+NOTE 1 The non-blocking requirement applies to the Nauvim process. The RPC response can remain pending while the Nauvim process handles other work.
 
 NOTE 2 A successful response reports successful client-side binding and the bound port. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [14].
 
@@ -2213,7 +2212,7 @@ On detachment, Nauvim shall clean up every copy operation and associated client-
 
 If a copy operation has not yet begun, Nauvim shall cancel it and prevent it from starting. If a copy operation is in progress, Nauvim shall send it a stop signal and wait until it has stopped before deleting its destination. Nauvim shall not begin destination deletion while the copy operation can still write to that destination.
 
-This wait shall be non-blocking for Nauvim: the application shall remain able to process UI events and other work while waiting for the copy task to stop.
+This wait shall be non-blocking for the Nauvim process, which shall remain able to process UI events and other work while waiting for the copy task to stop.
 
 After cancellation or termination of the copy operation, destination preservation and deletion shall follow steps 3 to 5 of 11.4.4, subject to the target restriction in 11.2.6. In particular, a pre-existing destination preserved because `override` was false shall remain unchanged; other associated destinations shall be deleted if present, recursively for directories, including partial results from failed or cancelled copies. A deletion attempt that fails shall end without retrying or resuming that attempt.
 
@@ -2297,7 +2296,7 @@ This function shall issue an RPC request using the method name `nauvim-plugin/ht
 
 Nauvim shall resolve `handle` to a server-startup operation or server created through `http.serve_file`. If the handle cannot be resolved to such an operation or server, the request shall return a request error.
 
-If binding has not yet completed or failed, Nauvim shall wait for the outcome of the associated binding operation. This waiting shall be non-blocking for Nauvim: the application shall remain able to process UI events, RPC messages and other work while the request is pending.
+If binding has not yet completed or failed, Nauvim shall wait for the outcome of the associated binding operation. This wait shall be non-blocking for the Nauvim process, which shall remain able to process UI events, RPC messages and other work while the request is pending.
 
 If Nauvim processes the corresponding `http.clear` notification while this request is waiting, it shall immediately complete the request with a nil result and no error. The Lua return values shall be `(nil, nil)`. Completion of binding or cleanup shall not be awaited before completing that request.
 
@@ -2307,7 +2306,7 @@ If binding has failed, `get_port` shall return a request error. This requirement
 
 All errors encountered in resolving the handle, waiting for binding or obtaining the bound port shall be returned as request errors in accordance with 11.2.1.
 
-NOTE 1 The non-blocking requirement applies to Nauvim. The RPC response can remain pending while Nauvim processes other work.
+NOTE 1 The non-blocking requirement applies to the Nauvim process. The RPC response can remain pending while the Nauvim process handles other work.
 
 NOTE 2 A successful response reports successful binding and the bound port. It does not indicate that HTTP request processing has begun. The port of a bound socket can be obtained using `getsockname(2)` or an equivalent interface. See [14].
 
@@ -2329,7 +2328,7 @@ nauvim-plugin::http.open_webview({
 
 This function shall issue an RPC request.
 
-Nauvim shall accept only the URL schemes `http` and `https` for `url`. A URL with any other scheme shall cause a request error to be returned to the host Neovim.
+`nauvim-core` shall accept only the URL schemes `http` and `https` for `url`. A URL with any other scheme shall cause a request error to be returned to the host Neovim.
 
 The `position` field shall be a dictionary with the following fields:
 
@@ -2347,13 +2346,13 @@ WebviewPosition := {
 
 The upper-left corner of the grid shall be `{ top = 0, left = 0 }`. Increasing `left` shall move to the right, and increasing `top` shall move downward. `top` and `left` shall specify the upper-left corner of the requested window; `height` and `width` shall specify its vertical and horizontal extents, respectively.
 
-Each of `top`, `left`, `height` and `width` shall be an integer from 0 to 65535, inclusive. Nauvim shall validate these four values as part of the RPC request and return a request error for a value that does not satisfy this requirement.
+Each of `top`, `left`, `height` and `width` shall be an integer from 0 to 65535, inclusive. `nauvim-core` shall validate these four values as part of the RPC request and return a request error for a value that does not satisfy this requirement.
 
-When omitted or nil, `focus` and `focusable` shall each default to `true`, and `close_on_blur` shall default to `false`. `nauvim-plugin` shall encode each of these fields as nil in its position in the RPC argument array when omitted. Nauvim shall return a request error if any of these fields has a value other than a Boolean or nil.
+When omitted or nil, `focus` and `focusable` shall each default to `true`, and `close_on_blur` shall default to `false`. `nauvim-plugin` shall encode each of these fields as nil in its position in the RPC argument array when omitted. `nauvim-core` shall return a request error if any of these fields has a value other than a Boolean or nil.
 
-The meaning of focus is UI-dependent. A window opened with `focusable = false` shall not receive focus. If both `focus` and `focusable` are true, Nauvim shall focus the window immediately after it opens. Otherwise, Nauvim shall skip automatic focus. In particular, `focus = true` together with `focusable = false` shall be accepted without a validation error for that combination.
+The meaning of focus is UI-dependent. A window opened with `focusable = false` shall not receive focus. If both `focus` and `focusable` are true, `nauvim` shall focus the window immediately after it opens. Otherwise, `nauvim` shall skip automatic focus. In particular, `focus = true` together with `focusable = false` shall be accepted without a validation error for that combination.
 
-If `close_on_blur` is `true` and the window loses focus, Nauvim shall immediately close the window using the cleanup specified for that window by `http.clear` in 11.5.4.
+If `close_on_blur` is `true` and the window loses focus, `nauvim` shall immediately close the window using the cleanup specified for that window by `http.clear` in 11.5.4.
 
 The following grid and position rules shall apply after argument validation and the policy check in 11.2.8 succeed.
 
@@ -2361,15 +2360,13 @@ If `grid` does not identify an existing grid, Nauvim shall neither create a GUI 
 
 Nauvim is not required to check whether a position whose four numeric values satisfy the required range fits within the actual grid. If the grid exists and those values are within range but the position or dimensions extend beyond the grid, behaviour is undefined.
 
-For an existing grid and a position that fits within that grid, Nauvim shall initiate asynchronous creation of a new GUI window at `position` and access `url` through that window. The successful `ret` shall be a resource handle for the requested operation, including a no-effect operation for a non-existent grid. Creation of a window before returning the handle is not guaranteed.
+For an existing grid and a position that fits within that grid, `nauvim-core` shall initiate an asynchronous GUI operation through the UI backend as specified in 7.4. For that operation, `nauvim` shall create a new GUI window at `position` and access `url` through that window. The successful `ret` shall be a resource handle for the requested operation, including a no-effect operation for a non-existent grid. Creation of a window before returning the handle is not guaranteed.
 
 Errors encountered during GUI window creation or access to `url` shall be reported as Nauvim errors in accordance with 11.2.3.
 
-RPC handling by `nauvim-core` and GUI window creation and focusing by `nauvim` shall follow the allocation of responsibilities in 7.4.
-
 The method name does not require the implementation to use a WebView. A WebView or another presentation component can provide the required access to `url`.
 
-When creating the window, Nauvim shall enable any available settings of the presentation component that allow the user to open developer tools or a developer console. Nauvim shall open the window with the developer tools and console hidden. The user can open them afterwards using the mechanism supported by the presentation component.
+When creating the window, `nauvim` shall enable any available settings of the presentation component that allow the user to open developer tools or a developer console. `nauvim` shall open the window with the developer tools and console hidden. The user can open them afterwards using the mechanism supported by the presentation component.
 
 Mouse interaction in the opened window shall be governed by 10.1.
 
@@ -2550,7 +2547,7 @@ nauvim-plugin::http.focus_webview({ handle: int })
 
 This function shall issue an RPC notification and return `nil`. The notification shall produce no RPC response.
 
-Nauvim shall look up `handle` as specified in 11.2.2. If it identifies an open window created by `http.open_webview` with `focusable = true`, Nauvim shall move focus to that window, with GUI responsibilities as specified in 7.4. If it identifies no such open window, including a window opened with `focusable = false`, the notification shall have no effect and Nauvim shall report no error.
+`nauvim-core` shall look up `handle` as specified in 11.2.2. If it identifies an open window created by `http.open_webview` with `focusable = true`, `nauvim` shall move focus to that window in accordance with 7.4. If it identifies no such open window, including a window opened with `focusable = false`, the notification shall have no effect and Nauvim shall report no error.
 
 If moving focus fails, Nauvim shall report a Nauvim error and leave the window open. The failed operation shall have no other effect.
 
@@ -2575,13 +2572,13 @@ When omitted or nil, `replace_history` and `focus` shall each default to `false`
 
 If `url` is malformed or its scheme is neither `http` nor `https`, Nauvim shall report a Nauvim error and perform no navigation.
 
-Nauvim shall look up `handle` as specified in 11.2.2 and evaluate the window's availability when it processes the notification. If the handle does not identify an open window created by `http.open_webview`, or if the window cannot navigate at that time, Nauvim shall report a Nauvim error and immediately discard the requested navigation. This requirement shall also apply when window creation is still pending. Nauvim shall neither wait for the window to become available nor defer navigation.
+`nauvim-core` shall look up `handle` as specified in 11.2.2 and evaluate the window's availability when it processes the notification. If the handle does not identify an open window created by `http.open_webview`, or if the window cannot navigate at that time, Nauvim shall report a Nauvim error and immediately discard the requested navigation. This requirement shall also apply when window creation is still pending. Nauvim shall neither wait for the window to become available nor defer navigation.
 
-Nauvim shall apply the origin permission as specified for top-level navigation in 11.5.3 to `url` and each redirect target. If the window is available and `url` is valid and permitted, Nauvim shall start top-level navigation to `url` in that window through the UI backend as specified in 7.4, subject to the idempotency requirements in 11.2.7.
+Nauvim shall apply the origin permission as specified for top-level navigation in 11.5.3 to `url` and each redirect target. If the window is available and `url` is valid and permitted, `nauvim-core` shall arrange top-level navigation to `url` in that window through the UI backend as specified in 7.4, subject to the idempotency requirements in 11.2.7. `nauvim` shall start the navigation arranged by `nauvim-core`.
 
-If `replace_history` is `true`, Nauvim shall replace the current history entry as part of navigation. If `replace_history` is `false`, Nauvim shall use the presentation component's normal history behaviour.
+If `replace_history` is `true`, `nauvim` shall replace the current history entry as part of navigation. If `replace_history` is `false`, `nauvim` shall use the presentation component's normal history behaviour.
 
-If `focus` is `true` and the window was opened with `focusable = true`, Nauvim shall request focus when the presentation component accepts the navigation. Otherwise, Nauvim shall skip the focus request.
+If `focus` is `true` and the window was opened with `focusable = true`, `nauvim` shall request focus when the presentation component accepts the navigation. Otherwise, `nauvim` shall skip the focus request.
 
 Nauvim shall report each failure to perform a requested history replacement or focus change as a Nauvim error in accordance with 11.2.3.
 
@@ -3049,7 +3046,7 @@ return {
 }
 ```
 
-With a named entry and a `Host` table as `default_host`, Nauvim opens the welcome page and offers both `non_empty` and the independent default `Host`. If the user selects the independent choice, its launch program is `/path/to/nvim`.
+With a named entry and a `Host` table as `default_host`, `nauvim` displays the welcome page and offers both `non_empty` and the independent default `Host`. If the user selects the independent choice, its launch program is `/path/to/nvim`.
 
 ```lua
 return {

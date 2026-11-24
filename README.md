@@ -1,6 +1,6 @@
 # Nauvim
 
-A graphical user interface for Neovim, with persistent local and remote editing sessions.
+Nauvim is a system that provides a graphical user interface for Neovim.
 
 The design keeps host Neovim processes running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, local forwarding, temporary copies of files and directories, and clipboard access.
 
@@ -8,7 +8,7 @@ This README is an informative guide to the [Nauvim specification](specification.
 
 [Type notation](type-notation.md) defines the shared abstract types, representation rules and annotation syntax used by the specification.
 
-The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`nauvim-core`), a host-side Lua interface (`nauvim-plugin`) and the GUI application (`nauvim`). Flutter is the initial UI backend.
+`nauvim` is the client application. It uses a UI backend and the UI-independent engine in `nauvim-core`. Flutter is the initial UI backend. `nauvim-core` uses the Rust RPC library `nvim-rpc`. `nauvim-plugin` provides the host-side Lua interface, and `nauvim-spec` contains the specification.
 
 ## Where to start
 
@@ -23,7 +23,7 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 | [1 Scope](specification.md#scope) | The features and components covered by the specification. |
 | [2 Normative references](specification.md#normative-references) | External API and protocol documents used by specific requirements. |
 | [3 Terms and definitions](specification.md#terms-and-definitions) | Host and client roles; sessions, connections, attachments, identifiers and resources. |
-| [4 Architecture](specification.md#architecture) | Responsibilities of the four repositories and the boundary between the engine, plugin and UI backend. |
+| [4 Architecture](specification.md#architecture) | Repository responsibilities and the roles of the engine, plugin, client application and UI backend. |
 | [5 Environments and compatibility](specification.md#supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
 | [6 Session management](specification.md#session-management) | Startup, ownership, reattachment, session switching, shutdown, resource cleanup and connection recovery. |
 | [7 Plugin interface and client operations](specification.md#plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
