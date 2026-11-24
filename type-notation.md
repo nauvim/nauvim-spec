@@ -170,6 +170,24 @@ object := nil | bool | int | float | string | list[object] | dict[string, object
 
 `bytes`, tuple types and function types are excluded from `object`, including within its lists and dictionaries.
 
+<a name="dictionary-composition"></a>
+
+### 6.7 `T & U`
+
+In `T & U`, both `T` and `U` shall be subtypes of the same dictionary type `dict[K, V]` (6.2). The sets of keys permitted by `T` and `U` shall be disjoint.
+
+`T & U` shall denote a single dictionary type whose permitted keys are the union of the keys permitted by `T` and `U`. Each key shall retain the value type specified by the operand that permits it.
+
+For a combined dictionary shape, field-presence requirements, defaults and the treatment of omitted or nil fields shall follow the interface using the combined shape, as specified in 7.3.
+
+EXAMPLE The following expressions denote the same dictionary shape.
+
+```text
+{ name: string } & { port: int }
+
+{ name: string, port: int }
+```
+
 <a name="declarations-and-annotations"></a>
 
 ## 7 Declarations and annotations
@@ -203,18 +221,16 @@ A dictionary shape may be written directly as a function argument's type. A sign
 
 ### 7.3 Dictionary shapes
 
-Braces shall describe a dictionary by its named keys and their value types:
+Braces shall describe a dictionary by its named keys and their value types. Each named field shall use `key: T`, including when `T` is a dictionary shape.
 
 ```text
 {
     key1: V1,
-    nested {
+    nested: {
         key2: V2,
     },
 }
 ```
-
-`nested { ... }` shall be shorthand for `nested: { ... }`. Both forms describe a dictionary-valued field.
 
 Field-presence requirements, defaults and the treatment of omitted or nil fields shall follow the interface using the shape. A shape alone shall not define those rules.
 
