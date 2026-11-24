@@ -982,7 +982,7 @@ For a dictionary or list of a supported form, Nauvim shall apply the recovery ru
 
 Nauvim may display a format error for an omission under these recovery rules. It shall continue loading with the remaining settings and use the resulting configuration if it passes the remaining validation checks.
 
-For other failures in loading the Nauvim Lua configuration, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
+For other failures in loading the Nauvim Lua configuration, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `ClientInfo` field prevents configuration execution under 8.6.3.
 
 The fallback shall use the Nauvim default configuration. Defaults expressly specified in this document shall apply; the remaining default values shall be specified separately. Where this document specifies a field-specific fallback or recovery rule, that rule shall apply.
 
@@ -1378,7 +1378,12 @@ HostInfo := {
 The injected client-information module shall return a Lua table of type `ClientInfo`.
 
 ```text
-ClientInfo := HostInfo & { ui_id: string }
+ClientInfo := HostInfo & {
+    ui_id: string,
+    os: string,
+    os_family: string,
+    arch: string,
+}
 require("nauvim-client-info"): ClientInfo
 ```
 
@@ -1411,6 +1416,16 @@ The values of `home_dir` and all three path fields within `project_dirs` shall b
 The `HostInfo` fields of `ClientInfo` shall describe the client environment. The `config_file` field shall identify the selected Nauvim configuration file and shall be non-nil.
 
 The `ui_id` field shall contain the UI implementation ID supplied by `nauvim` under 4.5, regardless of the key used for UI-specific option selection under 8.10.2.
+
+`ClientInfo` shall describe the client environment through the following fields.
+
+- `os` shall identify the operating system.
+- `os_family` shall identify the family of the operating system.
+- `arch` shall identify the CPU architecture.
+
+Each of these fields shall be a non-nil, non-empty string. The methods `nauvim-core` uses to obtain these values and the possible values for each field are unspecified.
+
+The values of `os`, `os_family` and `arch` should equal the values of `OS`, `FAMILY` and `ARCH`, respectively, from `std::env::consts` [24] for the corresponding Rust target. The reference release is the latest stable Rust release available when this specification is written or updated.
 
 If acquisition of a required `HostInfo` field value fails and a reasonable default value exists, `nauvim-core` shall use that default. If no reasonable default value exists, it shall return an error and shall not execute the selected Lua configuration file.
 
@@ -3137,3 +3152,5 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 [22] IETF. [RFC 3629: UTF-8, a transformation format of ISO 10646](https://www.rfc-editor.org/rfc/rfc3629.html), Section 6.
 
 [23] IETF. [RFC 8252: OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.html#section-3), Section 3, definition of reverse domain name notation.
+
+[24] Rust. [`std::env::consts`](https://doc.rust-lang.org/stable/std/env/consts/index.html).
