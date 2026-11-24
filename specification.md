@@ -391,7 +391,7 @@ Note 1 to entry: Its lifecycle is specified in 6.6.5, and the path-interpretatio
 
 **UI implementation ID**
 
-string identifying a concrete `nauvim` implementation for UI-specific configuration selection
+string identifying a concrete `nauvim` implementation
 
 Note 1 to entry: A UI implementation ID identifies an application implementation, rather than an individual running process. It is distinct from the *client ID* ([3.46](#client-identifier)).
 
@@ -452,7 +452,7 @@ local nauvim = require("nauvim-plugin")
 
 It shall determine the concrete methods for creating GUI windows and GUI tabs and shall be responsible for their actual creation and management.
 
-`nauvim` shall provide its UI implementation ID to `nauvim-core` before UI-specific options are selected under 8.10. The ID shall satisfy the string requirements for keys in `ui_opts` specified in 8.10.1. Each implementation shall document its ID.
+`nauvim` shall provide its UI implementation ID to `nauvim-core` before Lua configuration execution under 8.1 and before UI-specific option selection under 8.10. The ID shall satisfy the string requirements for keys in `ui_opts` specified in 8.10.1. Each implementation shall document its ID.
 
 Subject to those string requirements, the ID's format is unspecified. The ID should follow reverse domain name notation, with domain-name components written in reverse order. See [23], Section 3.
 
@@ -935,7 +935,7 @@ When the user does not specify a path, the default shall be `$XDG_CONFIG_HOME/na
 
 The configuration shall be evaluated by the Nauvim engine in the client environment.
 
-Before executing the configuration file, `nauvim-core` shall obtain the client environment's `HostInfo` as specified in 8.6 and inject the `nauvim-client-info` module into the configuration's Lua environment. `require("nauvim-client-info")` shall return that `HostInfo` table. The acquisition and failure rules in 8.6.3 shall apply before execution of the configuration file begins.
+Before executing the configuration file, `nauvim-core` shall inject the `nauvim-client-info` module into the configuration's Lua environment. The module shall return the `ClientInfo` table specified in 8.6.1, with values obtained under 8.6.3.
 
 <a name="lua-module-search-path"></a>
 
@@ -943,7 +943,7 @@ Before executing the configuration file, `nauvim-core` shall obtain the client e
 
 When loading the Lua configuration file, `nauvim-core` shall configure the Lua module search path before executing the configuration's Lua code.
 
-Let `config_file` be the non-nil, symbolic-link-resolved absolute path supplied by the client-side `HostInfo`. The module search root `ROOT` shall be the parent directory of that path, irrespective of the configuration file's name:
+Let `config_file` be the non-nil, symbolic-link-resolved absolute path in `ClientInfo`. The module search root `ROOT` shall be the parent directory of that path, irrespective of the configuration file's name.
 
 ```text
 ROOT = config_file.parent
@@ -969,7 +969,7 @@ NOTE 2 These templates follow Neovim's local Lua-module layout and search order.
 
 #### 8.1.2 Configuration-loading failures
 
-If loading the Nauvim Lua configuration fails, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain the client environment's `HostInfo` prevents configuration execution under 8.6.3.
+If loading the Nauvim Lua configuration fails, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
 
 The fallback shall use the Nauvim default configuration. Defaults expressly specified in this document shall apply; the remaining default values shall be specified separately. Where this document specifies a field-specific fallback or recovery rule, that rule shall apply.
 
@@ -1340,11 +1340,11 @@ The Lua configuration shall not provide a `request_tty` field. Any `RequestTTY` 
 
 <a name="host-information"></a>
 
-### 8.6 Host information
+### 8.6 Host and client information
 
 <a name="hostinfo-type"></a>
 
-#### 8.6.1 HostInfo type
+#### 8.6.1 HostInfo and ClientInfo types
 
 `HostInfo` shall have the following structure. All fields other than `config_file` shall be present and have the indicated types. The value of `config_file` shall follow the client and host role requirements in 8.6.3 and 8.7.1.
 
@@ -1362,13 +1362,14 @@ HostInfo := {
 }
 ```
 
-The injected client-information module shall have the following result type:
+The injected client-information module shall return a Lua table of type `ClientInfo`.
 
 ```text
-require("nauvim-client-info"): HostInfo
+ClientInfo := HostInfo & { ui_id: string }
+require("nauvim-client-info"): ClientInfo
 ```
 
-The fields shall provide values directly. They shall not be getter functions.
+The fields of both types shall provide values directly.
 
 <a name="values-defaults-and-path-properties"></a>
 
@@ -1392,15 +1393,17 @@ The values of `home_dir` and all three path fields within `project_dirs` shall b
 
 <a name="client-information-before-configuration-execution"></a>
 
-#### 8.6.3 `HostInfo` for the client environment
+#### 8.6.3 Client information before configuration execution
 
-The `HostInfo` returned by `require("nauvim-client-info")` shall describe the client environment. Its `config_file` shall identify the selected Nauvim configuration file and shall be non-nil.
+The `HostInfo` fields of `ClientInfo` shall describe the client environment. The `config_file` field shall identify the selected Nauvim configuration file and shall be non-nil.
+
+The `ui_id` field shall contain the UI implementation ID supplied by `nauvim` under 4.5, regardless of the key used for UI-specific option selection under 8.10.2.
 
 If acquisition of a required `HostInfo` field value fails and a reasonable default value exists, `nauvim-core` shall use that default. If no reasonable default value exists, it shall return an error and shall not execute the selected Lua configuration file.
 
 An acquisition failure that prevents configuration execution shall be handled as a configuration-loading failure under 8.1.2.
 
-`nauvim-core` shall finish obtaining the `HostInfo` for the client environment before executing any code in the selected Lua configuration file, regardless of whether that code calls `require("nauvim-client-info")`. A partially populated `HostInfo` shall not be used to begin configuration execution.
+`nauvim-core` shall obtain all required values and make the complete `ClientInfo` table available through `nauvim-client-info` before executing any code in the selected Lua configuration file, regardless of whether that code calls `require("nauvim-client-info")`.
 
 In the failure case that prevents execution, whether the selected Lua configuration file is read or parsed is unspecified.
 
@@ -1435,7 +1438,7 @@ hosts[X].socket: string | (func(HostInfo) -> string) | nil
 
 An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply when no Lua host entry supplies the setting; host selection shall continue to follow 8.3 and 8.5.
 
-For a directly supplied `nvim` string or `NvimProg`, or a directly supplied `socket` string, Nauvim shall use the supplied value without acquiring the host environment's `HostInfo` for that field. Nauvim shall still obtain the client environment's `HostInfo` before configuration execution as required by 8.6.3.
+For a directly supplied `nvim` string or `NvimProg`, or a directly supplied `socket` string, Nauvim shall use the supplied value without acquiring the host environment's `HostInfo` for that field. The requirement to make `ClientInfo` available before configuration execution in 8.6.3 shall still apply.
 
 For a function-valued field, `nauvim-core` shall obtain `HostInfo` in the host environment and pass it to the function. If that acquisition fails, Nauvim shall return an error and shall not invoke the function. The result of an `nvim` function shall be a string or `NvimProg`; the result of a `socket` function shall be a string. The `NvimProg` field defaults shall also apply to a function result of that type.
 
@@ -1635,7 +1638,7 @@ UI-specific options shall not override the requirements of this document.
 
 ### 8.11 Other configuration details
 
-Annex A illustrates the configuration model, including `HostInfo`, host entries, security policies, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
+Annex A illustrates the configuration model, including host and client information, host entries, security policies, SSH settings, socket paths, clipboard settings and UI-specific options. Annex A does not add normative requirements to Clause 8.
 
 <a name="build-time-features-and-dependencies"></a>
 
@@ -2703,7 +2706,7 @@ Nauvim shall perform the welcome-page transition and new connection attempt in a
 
 This annex illustrates the configuration model specified in Clause 8. UI-specific option schemas are defined by the UI implementation under 8.10.
 
-The example uses the `HostInfo` table returned by the `nauvim-client-info` module injected by `nauvim-core`. Its fields describe the client environment, and `client.config_file` is a non-nil path to the selected Nauvim configuration file.
+The example uses the `ClientInfo` table returned by `require("nauvim-client-info")`. Its `HostInfo` fields describe the client environment. In the example, `client.config_file` is a non-nil path to the selected Nauvim configuration file. The `client.ui_id` value identifies the running UI implementation.
 
 The username in the client environment comes from `client.user`. The SSH settings determine the username used to authenticate to the SSH server.
 
@@ -2790,7 +2793,7 @@ The `"local"` entry has no SSH settings and therefore designates a local host Ne
 
 If `default_host` were `nil` in this example, the startup choices on the welcome page would be the two configured entries and the independent default `Host`. The entry with the host alias `"local"` would remain distinct from that default `Host`.
 
-The local entry uses string-valued `nvim` and `socket` settings, so resolving those fields does not require `HostInfo` for the host environment. Nauvim still obtains `HostInfo` for the client environment before configuration execution.
+The local entry uses string-valued `nvim` and `socket` settings, so resolving those fields does not require `HostInfo` for the host environment. Nauvim still makes `ClientInfo` available before configuration execution.
 
 The remote entry uses functions whose `host` parameter is a `HostInfo` obtained in the remote host environment. Its executable path uses the host's home directory, and its socket path uses the host's project runtime directory. In both functions, `host.config_file` is `nil`. The same host-role rule applies when a local entry uses function-valued settings.
 
@@ -2991,7 +2994,7 @@ return {
 }
 ```
 
-Here, `nauvim-core` selects `ui_opts["some-alias"]` regardless of the supplied UI implementation ID. This allows a user-chosen key when UI implementations use conflicting IDs. The empty dictionary's interpretation is defined by the running UI implementation's schema. Removing the `"some-alias"` entry or setting it to nil also results in an empty dictionary; it does not cause lookup using the UI implementation ID.
+Here, `nauvim-core` selects `ui_opts["some-alias"]`, and `require("nauvim-client-info").ui_id` gives the running UI implementation's ID. An explicit selection key lets the user choose an option dictionary when UI implementations use the same ID. The running UI implementation's schema determines how it interprets the empty dictionary. If the `"some-alias"` entry is absent or nil, the result is an empty dictionary even when an entry exists for the UI implementation ID.
 
 <a name="example-unrestricted-origins-and-forwarding-endpoints"></a>
 

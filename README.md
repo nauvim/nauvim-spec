@@ -27,7 +27,7 @@ The project separates a Rust RPC layer (`nvim-rpc`), the application engine (`na
 | [5 Environments and compatibility](specification.md#supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
 | [6 Session management](specification.md#session-management) | Startup, ownership, reattachment, session switching, shutdown, resource cleanup and connection recovery. |
 | [7 Plugin interface and client operations](specification.md#plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
-| [8 Configuration](specification.md#configuration) | Lua loading, host selection, host-specific security policies, SSH resolution, host information, program arguments, clipboard backends and UI-specific options. |
+| [8 Configuration](specification.md#configuration) | Lua loading, host selection, host-specific security policies, SSH resolution, host and client information, program arguments, clipboard backends and UI-specific options. |
 | [9 Build-time features and dependencies](specification.md#build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
 | [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
 | [11 `nauvim-plugin` API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
