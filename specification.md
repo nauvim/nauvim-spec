@@ -971,7 +971,18 @@ NOTE 2 These templates follow Neovim's local Lua-module layout and search order.
 
 If the user omits the Lua configuration path and the file at the default path specified in 8.1 does not exist, Nauvim shall continue startup with the default configuration values without reporting a configuration-loading error for the missing file.
 
-In all other cases, if loading the Nauvim Lua configuration fails, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
+During validation of the evaluated Lua configuration, Nauvim shall apply the following recovery rules to top-level and nested dictionary entries, including entries in dictionaries contained in lists.
+
+- If the applicable configuration schema does not recognize a key, Nauvim shall treat the entry as omitted.
+- If the key is recognized and its value has a type unsupported for that key, Nauvim shall treat the value as omitted. The normal rules for omission shall apply, including any default defined for the field.
+
+For dictionaries with user-defined keys, Nauvim shall use the schema's key type to determine which keys are recognized. Nauvim shall still validate restrictions on the contents of supported keys and values, including numeric ranges, permitted string literals and path requirements.
+
+For a dictionary or list of a supported form, Nauvim shall apply the recovery rules to nested dictionary entries before validating the enclosing value. If recovery omits a required field in a nested dictionary and no default supplies a value, Nauvim shall omit that dictionary from its enclosing dictionary or list.
+
+Nauvim may display a format error for these cases. It shall continue loading with the remaining settings and use the resulting configuration if it passes the remaining validation checks.
+
+For other failures in loading the Nauvim Lua configuration, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
 
 The fallback shall use the Nauvim default configuration. Defaults expressly specified in this document shall apply; the remaining default values shall be specified separately. Where this document specifies a field-specific fallback or recovery rule, that rule shall apply.
 
@@ -992,7 +1003,7 @@ The configuration interface shall provide settings for:
 
 The configuration scope is limited to Nauvim application settings. An extensive editor-configuration interface comparable to Neovim's is outside the scope of this document.
 
-Except within UI-specific option dictionaries (8.10), all predefined field names in the Lua configuration shall use snake_case. Alternative kebab-case spellings of those names shall not be accepted. This naming requirement shall not constrain user-defined host aliases or keys in `ui_opts`.
+Except within UI-specific option dictionaries (8.10), all predefined field names in the Lua configuration shall use snake_case. Nauvim shall treat alternative kebab-case spellings of those names as unrecognized keys under 8.1.2. This naming requirement shall not constrain user-defined host aliases or keys in `ui_opts`.
 
 Nauvim shall provide default configuration values. The native SSH host-setting defaults are specified in 8.4.2.
 
@@ -1006,7 +1017,7 @@ For host selection, `hosts` shall be considered empty when omitted, nil or an em
 
 The **default `Host`** shall be a choice independent of the named entries in `hosts`. When `default_host` is a `Host` table, this choice shall use that configuration. Otherwise, it shall use the defaults of `Host`, including the program and socket settings in 8.7. This built-in configuration shall designate a local host Neovim without SSH settings.
 
-Nauvim shall validate `default_host` during configuration loading. A table supplied as `default_host` shall conform to the `Host` requirements in 8.3. An empty string or any other invalid value shall be a configuration-validation error under 8.1.2.
+Nauvim shall validate `default_host` during configuration loading. A table supplied as `default_host` shall conform to the `Host` requirements in 8.3, subject to the recovery rules in 8.1.2. An empty string shall be a configuration-validation error under 8.1.2.
 
 For a configuration that passes validation, Nauvim shall select its startup destination as follows:
 
@@ -1106,7 +1117,7 @@ SocketForwardPolicyEntry := {
 
 An omitted, nil or empty `policies` table shall grant no permissions. An omitted or nil policy field shall grant no permission through that field. These defaults shall apply to every `Host` configuration, including the independent default `Host`. A destination selected by alias and resolved solely through OpenSSH because it has no entry in `hosts` shall grant no permissions.
 
-Nauvim shall validate policy keys and values against this subclause when loading the client configuration, including for any unselected `Host` configuration. Unknown keys, invalid values and missing required fields in a list entry shall be configuration-validation errors under 8.1.2.
+Nauvim shall validate policy keys and values against this subclause when loading the client configuration, including for any unselected `Host` configuration. It shall apply the recovery rules in 8.1.2 to unrecognized keys and unsupported value types, including within forwarding policy list entries. A list entry supplied without a required field or a value that violates the restrictions for its supported type shall be a configuration-validation error under 8.1.2.
 
 `plugin.filesystem.copy = true` shall permit `filesystem.copy` into the process temporary directory. `plugin.http.serve_file = true` shall permit `http.serve_file` from that directory. `plugin.clipboard.copy = true` shall permit host-initiated writes through `clipboard.copy` to the client clipboard. A Boolean value of `false` shall grant no permission.
 
@@ -1153,9 +1164,9 @@ This subclause specifies the Lua configuration input format. It does not specify
 
 Lookups in native SSH settings shall match host aliases exactly and case-sensitively. The characters `*`, `?` and `!` in these aliases shall be treated as literal characters. These aliases shall not be case-folded.
 
-The accepted Lua SSH field names shall be exactly those in Table 3. Native SSH host tables shall not support an `Include` directive.
+The recognized Lua SSH field names shall be exactly those in Table 3. Native SSH host tables shall not support an `Include` directive.
 
-Unknown SSH fields and invalid field types shall be configuration errors, including when they occur in an unused host or an unused inline jump-host table. These checks shall apply to the SSH tables, not to surrounding Nauvim host settings such as `nvim`, `socket` or `policies`.
+Nauvim shall apply the recovery rules in 8.1.2 to unrecognized keys and unsupported field types in native SSH host tables, including tables for unused hosts and unused inline jump hosts.
 
 Lua expressions may compute field values. The resulting values shall conform to the specified field types; the ability to define a Lua function shall not, by itself, make a function a valid SSH field value.
 
@@ -1250,7 +1261,7 @@ The user shall be responsible for ensuring that proxy-jump definitions contain n
 
 #### 8.5.1 Notation and scope
 
-In this subclause, `config` denotes the evaluated Nauvim configuration. The logical SSH host-table collection `H` shall be defined by:
+In this subclause, `config` denotes the configuration Nauvim uses after loading under 8.1.2. The logical SSH host-table collection `H` shall satisfy the following definition.
 
 ```text
 H[X] = config.hosts[X].ssh, if config.hosts[X] exists;
@@ -1523,9 +1534,9 @@ The string form shall identify a clipboard backend. In the table form, a non-nil
 
 The default value of `timeout_ms` is unspecified. Nauvim shall use that default when the string form is used, when `clipboard` is omitted or nil, or when the table form omits `timeout_ms` or supplies it as nil. Such omission or nil shall not itself be a validation error.
 
-For a non-nil `timeout_ms` in the table form, `nauvim-core` shall check that the value has integer type and is greater than or equal to `1`. Floating-point values shall be invalid, including values that are mathematically integral. Other supplied non-nil values of non-integer types shall also be invalid.
+If a non-nil `timeout_ms` has a type other than integer, `nauvim-core` shall apply the recovery rules in 8.1.2. This includes floating-point values that are mathematically integral.
 
-If this validation fails, `nauvim-core` shall display an error message in the client environment and fall back to the default timeout value. Nauvim shall proceed using that default rather than fail configuration loading because of the invalid timeout value. Backend availability validation shall follow 8.8.2.
+If an integer `timeout_ms` is less than `1`, `nauvim-core` shall display an error message in the client environment and continue loading with the default timeout value. Backend availability validation shall follow 8.8.2.
 
 The backend identifier `"auto"` shall request automatic detection of a clipboard backend in the client environment. It shall be accepted in either form. When `clipboard` is omitted or nil, its value shall default to `"auto"`.
 
@@ -1603,22 +1614,20 @@ Each non-nil entry in `ui_opts` shall be a dictionary with keys of type `string`
 
 Within the shared type requirements, value ranges and representations within UI-specific option dictionaries are unspecified by this document. This includes integer sign and range, and floating-point precision. All string keys and values within option dictionaries shall satisfy the shared `string` requirements, including UTF-8 encoding and the NUL and initial-`U+FEFF` exclusions. The additional non-empty requirement for keys in `ui_opts` and for `use_ui_opts` shall not apply to strings within option dictionaries.
 
-`nauvim-core` shall validate these common requirements for all entries in `ui_opts`, including unselected entries, and for `use_ui_opts`. Validation failures shall be handled under 8.1.2.
+`nauvim-core` shall validate these common requirements for all entries in `ui_opts`, including unselected entries, and for `use_ui_opts`. It shall apply the recovery and failure rules in 8.1.2 before selecting an option dictionary.
 
 <a name="selection-and-delivery"></a>
 
 #### 8.10.2 Selection and delivery
 
-After configuration evaluation, `nauvim-core` shall determine the selection key as follows:
+After common validation under 8.10.1, `nauvim-core` shall determine the selection key using these rules.
 
 1. If `use_ui_opts` is non-nil, its value shall be used.
 2. Otherwise, the UI implementation ID supplied by `nauvim` under 4.5 shall be used.
 
 Keys shall be matched exactly. A key supplied by `use_ui_opts` need not match a UI implementation ID.
 
-`nauvim-core` shall treat an absent or nil entry at the selection key as an empty dictionary. A non-nil entry shall be a dictionary with string keys; otherwise, configuration validation shall fail under 8.1.2. `nauvim-core` shall make the resulting dictionary available to `nauvim`.
-
-An absent or nil entry shall not itself be a configuration-validation error. When an explicit `use_ui_opts` value has no matching entry or its entry is nil, `nauvim-core` shall use the empty dictionary rather than fall back to lookup using the UI implementation ID. Option dictionaries shall not be merged as part of selection.
+`nauvim-core` shall make the dictionary at the selection key available to `nauvim`. It shall supply an empty dictionary if the entry is absent or nil, including when `use_ui_opts` supplies the selection key. Option dictionaries shall not be merged as part of selection.
 
 <a name="interpretation-and-responsibilities"></a>
 
@@ -1626,7 +1635,7 @@ An absent or nil entry shall not itself be a configuration-validation error. Whe
 
 Each UI implementation shall define and document its UI-specific option schema, including field names, types, meanings and defaults. These schemas are outside the scope of this document.
 
-`nauvim` shall interpret and validate the selected option dictionary according to its schema. Such validation failures shall be handled under 8.1.2. Unselected dictionaries shall not be interpreted or validated against UI-specific schemas. The common validation requirements in 8.10.1 shall remain applicable.
+`nauvim` shall interpret and validate the selected option dictionary according to its schema and apply the recovery and failure rules in 8.1.2. Unselected dictionaries shall not be interpreted or validated against UI-specific schemas. The common validation requirements in 8.10.1 shall remain applicable.
 
 `nauvim-core` shall not interpret or validate UI-specific option fields beyond the common requirements in 8.10.1. The concrete interface used to deliver the selected dictionary to `nauvim` is unspecified.
 
@@ -3033,6 +3042,8 @@ return {
     default_host = { nvim = "/path/to/nvim" },
 }
 ```
+
+A version that implements 8.1.2 and accepts only `string | nil` for `default_host` treats the table in this example as omitted. It still offers `non_empty` and the independent default `Host` on the welcome page. The independent choice uses the built-in local configuration in that version.
 
 A string `default_host` selects the named entry `my_own_default` for automatic startup. This entry specifies `/path/to/nvim` as its launch program.
 
