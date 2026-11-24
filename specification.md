@@ -980,7 +980,7 @@ For dictionaries with user-defined keys, Nauvim shall use the schema's key type 
 
 For a dictionary or list of a supported form, Nauvim shall apply the recovery rules to nested dictionary entries before validating the enclosing value. If recovery omits a required field in a nested dictionary and no default supplies a value, Nauvim shall omit that dictionary from its enclosing dictionary or list.
 
-Nauvim may display a format error for these cases. It shall continue loading with the remaining settings and use the resulting configuration if it passes the remaining validation checks.
+Nauvim may display a format error for an omission under these recovery rules. It shall continue loading with the remaining settings and use the resulting configuration if it passes the remaining validation checks.
 
 For other failures in loading the Nauvim Lua configuration, Nauvim shall display the error and continue using the default configuration values. This rule shall apply to failures in reading, parsing, executing or validating that configuration. It shall also apply when a failure to obtain a required `HostInfo` field for `ClientInfo` prevents configuration execution under 8.6.3.
 
@@ -1168,7 +1168,7 @@ The recognized Lua SSH field names shall be exactly those in Table 3. Native SSH
 
 Nauvim shall apply the recovery rules in 8.1.2 to unrecognized keys and unsupported field types in native SSH host tables, including tables for unused hosts and unused inline jump hosts.
 
-Lua expressions may compute field values. The resulting values shall conform to the specified field types; the ability to define a Lua function shall not, by itself, make a function a valid SSH field value.
+Lua expressions may compute field values. Nauvim shall validate the resulting values under 8.1.2.
 
 <a name="fields-and-defaults"></a>
 
@@ -1243,7 +1243,7 @@ The `proxy_jump` setting shall accept an SSH host alias string, an inline jump-h
 
 A string shall designate an SSH host alias resolved using 8.5. Each jump host shall use the same lookup and supplementation rules as other SSH destinations. Native SSH settings shall take precedence. Supplementation from the OpenSSH configuration source shall follow 8.5.4 before native defaults are applied.
 
-An inline jump-host table shall accept the same SSH fields as a native SSH host table in `config.hosts`, including a nested `proxy_jump`. Its `host_name` shall designate a literal network destination. For an inline jump host with SSH lookup name `Y`, Nauvim shall use the inline table as `B` and apply steps 3 to 5 of 8.5.3. Its explicitly supplied values shall take precedence over the native settings in `H[Y]` and the OpenSSH settings in `O(Y)`.
+An inline jump-host table shall accept the same SSH fields as the native SSH host table for a named host, including a nested `proxy_jump`. Its `host_name` shall designate a literal network destination. For an inline jump host with SSH lookup name `Y`, Nauvim shall use the inline table as `B` and apply steps 3 to 5 of 8.5.3. Its explicitly supplied values shall take precedence over the native settings in `H[Y]` and the OpenSSH settings in `O(Y)`.
 
 The SSH lookup name for an inline jump host shall be its supplied `host_name`, subject to the applicable default for `host_name`. The resolved settings shall provide the destination. If a required SSH lookup name cannot be obtained, the ordinary host-resolution failure rules in 8.5.4 and 6.9 shall apply.
 
@@ -1270,7 +1270,7 @@ H[X] = nil, otherwise.
 
 If `config.hosts` is omitted or nil, `H[X]` shall be nil for every `X`.
 
-Thus, `H[X]` is the SSH table within a Nauvim host entry. It is not the surrounding Nauvim host entry. The merge specified below shall apply only to SSH settings. It shall not inherit another host entry's `nvim`, `socket` or `policies` setting.
+The merge specified below shall use only SSH settings. It shall not inherit `nvim`, `socket` or `policies` from another `Host` configuration.
 
 `O(X)` denotes the SSH settings obtained for the supplied SSH lookup name `X` by applying 8.5.4 to the client-side OpenSSH configuration file selected under 8.9.
 
@@ -1313,7 +1313,7 @@ The resulting precedence shall be: the explicitly supplied settings in `B`, then
 
 The lookup of `H[Y]` in step 3 shall be one direct lookup. Nauvim shall not recursively apply this host-resolution procedure to that table before merging it into `R`. In particular, it shall not follow that table's `host_name` to perform another native or OpenSSH lookup. Nested jump-host processing under 8.4.6 is a separate operation.
 
-If `Y == X`, the native merge shall leave the supplied table unchanged. If settings remain absent, step 4 shall use `O(X)` before native defaults are applied.
+For a destination selected by alias, if `Y == X`, the native merge shall leave the supplied table unchanged. If settings remain absent, step 4 shall use `O(X)` before native defaults are applied.
 
 If a Nauvim entry exists for `Y` but contains no `.ssh` table, it shall not supply native SSH settings. In this SSH-resolution context, `H[Y] == nil`; step 4 shall apply to any remaining absent settings using `O(Y)`.
 
@@ -1449,7 +1449,7 @@ host.nvim: string | NvimProg | (func(HostInfo) -> (string | NvimProg)) | nil
 host.socket: string | (func(HostInfo) -> string) | nil
 ```
 
-An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply when no Lua host entry supplies the setting; host selection shall continue to follow 8.3 and 8.5.
+An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply to a destination resolved solely through OpenSSH. Host selection shall follow 8.3 and 8.5.
 
 For a directly supplied `nvim` string or `NvimProg`, or a directly supplied `socket` string, Nauvim shall use the supplied value without acquiring the host environment's `HostInfo` for that field. The requirement to make `ClientInfo` available before configuration execution in 8.6.3 shall still apply.
 
@@ -2860,7 +2860,7 @@ For `work`, `H["work"]` supplies the highest-priority values and `H["base"]` sup
 
 Resolving `work` does not recursively resolve the `base` table, read OpenSSH settings for `"server.example.com"`, or substitute that name for `"base"`. Its OpenSSH supplementation uses the lookup name `"base"`. Resolving `base` as a separate requested host is a separate operation under 8.5.3.
 
-If an existing native SSH table omits `host_name`, its supplied alias is used for lookup. The native merge with that same table leaves its supplied settings unchanged. If settings remain absent, resolution uses the OpenSSH configuration for that alias under 8.5.4. Native defaults are applied last.
+If the native SSH host table for a destination selected by alias omits `host_name`, resolution uses the supplied alias as the SSH lookup name. The native merge with that same table leaves its supplied settings unchanged. If settings remain absent, resolution uses the OpenSSH configuration for that alias under 8.5.4. Native defaults are applied last.
 
 <a name="example-shallow-table-merge"></a>
 
