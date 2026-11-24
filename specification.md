@@ -998,22 +998,22 @@ Nauvim shall provide default configuration values. The native SSH host-setting d
 
 #### 8.2.1 Startup host selection
 
-`default_host` shall be a top-level configuration field of type `string | nil`, at the same level as `hosts`. Its default value shall be `nil`.
+The default value of `default_host` shall be nil.
 
 For host selection, `hosts` shall be considered empty when omitted, nil or an empty dictionary.
 
-In this subclause, the **default `Host`** shall mean a host configuration using the defaults of `Host`, including the program and socket settings in 8.7. It shall designate a local host Neovim without SSH settings.
+The **default `Host`** shall be a choice independent of the named entries in `hosts`. When `default_host` is a `Host` table, this choice shall use that configuration. Otherwise, it shall use the defaults of `Host`, including the program and socket settings in 8.7. This built-in configuration shall designate a local host Neovim without SSH settings.
 
-An empty string supplied as `default_host` shall be a configuration-validation error, irrespective of whether `hosts` is empty. That error shall be handled under 8.1.2.
+Nauvim shall validate `default_host` during configuration loading. A table supplied as `default_host` shall conform to the `Host` requirements in 8.3. An empty string or any other invalid value shall be a configuration-validation error under 8.1.2.
 
 For a configuration that passes validation, Nauvim shall select its startup destination as follows:
 
-1. If `hosts` is empty and `default_host` is nil, Nauvim shall select the default `Host` as its automatic startup destination and initiate a connection to it.
+1. If `hosts` is empty and `default_host` is either nil or a `Host` table, Nauvim shall select the default `Host` as its automatic startup destination and initiate a connection to it.
 2. If `hosts` is empty and `default_host` is a non-empty string `X`, Nauvim shall obtain the SSH settings for `X` from the OpenSSH configuration source under 8.5 and initiate a connection using those settings and the applicable defaults for the host Neovim.
-3. If `hosts` is non-empty and `default_host` is nil, Nauvim shall display the welcome page and wait for the user to select a host. The choices shall comprise every `Host` entry in `hosts` and the default `Host`. Nauvim shall initiate the selected connection after the user makes that selection.
+3. If `hosts` is non-empty and `default_host` is either nil or a `Host` table, Nauvim shall display the welcome page and wait for the user to select a host. The choices shall comprise every `Host` entry in `hosts` and the default `Host`. Nauvim shall initiate the selected connection after the user makes that selection.
 4. If `hosts` is non-empty and `default_host` is a non-empty string `X`, Nauvim shall first look for `hosts[X]`. If that entry exists, Nauvim shall initiate a connection using it, applying 8.3 and 8.5. Otherwise, Nauvim shall obtain the SSH settings for `X` from the OpenSSH configuration source under 8.5 and initiate a connection using those settings and the applicable defaults for the host Neovim.
 
-The default `Host` shall be an independent choice from the named entries in `hosts`. Its presentation should distinguish it clearly from those entries, including user-defined entries with the host aliases `"default"` or `"local"`. Both aliases shall remain available for user-defined entries. The concrete selection interaction and display labels are otherwise unspecified.
+The presentation of the default `Host` should distinguish it clearly from the named entries in `hosts`, including user-defined entries with the host aliases `"default"` or `"local"`. Both aliases shall remain available for user-defined entries. The concrete selection interaction and display labels are otherwise unspecified.
 
 Connection to a selected destination shall follow the startup, ownership, reuse and attachment requirements in Clause 6. OpenSSH-source failures shall follow 8.5.4 and 6.9.
 
@@ -1026,7 +1026,7 @@ The top-level configuration fields shall have the following types:
 ```text
 Config := {
     clipboard: string | Clipboard | nil,
-    default_host: string | nil,
+    default_host: string | Host | nil,
     hosts: dict[string, Host] | nil,
     ssh: SshConf | nil,
     ui_opts: dict[string, dict[string, object]] | nil,
@@ -1059,13 +1059,11 @@ Host := {
 
 `SshHostConf` shall follow 8.4. The types, resolution and defaults for `nvim` and `socket` shall follow 8.7.
 
-The `policies` field shall belong to the individual host entry and shall follow 8.3.2.
+The `policies` field shall apply to the host described by its `Host` configuration and shall follow 8.3.2.
 
-A configured host entry without SSH settings shall designate a host Neovim running in the client environment.
+A selected `Host` with omitted or nil `ssh` shall designate a host Neovim running in the client environment. Nauvim shall apply this local-host rule before SSH host resolution. If the selected `Host` contains SSH settings, Nauvim shall resolve them under 8.5.
 
-Specifically, if `config.hosts[X]` exists and `config.hosts[X].ssh == nil`, Nauvim shall select a local host Neovim. This condition shall be evaluated before applying the SSH host-resolution procedure in 8.5 to a requested host.
-
-If an explicitly supplied host alias `X` has no entry in `config.hosts`, Nauvim shall resolve `X` through the OpenSSH configuration source in accordance with 8.5. Selection of the default `Host` under 8.2.1 shall directly select the local host configuration specified in that subclause.
+If an explicitly supplied host alias `X` has no entry in `config.hosts`, Nauvim shall resolve `X` through the OpenSSH configuration source in accordance with 8.5.
 
 <a name="host-specific-security-policies"></a>
 
@@ -1104,9 +1102,9 @@ SocketForwardPolicyEntry := {
 }
 ```
 
-An omitted, nil or empty `policies` table shall grant no permissions. An omitted or nil policy field shall grant no permission through that field. These defaults shall also apply to the default `Host` specified in 8.2.1 and to a destination resolved solely through OpenSSH because it has no entry in `hosts`.
+An omitted, nil or empty `policies` table shall grant no permissions. An omitted or nil policy field shall grant no permission through that field. These defaults shall apply to every `Host` configuration, including the independent default `Host`. A destination selected by alias and resolved solely through OpenSSH because it has no entry in `hosts` shall grant no permissions.
 
-Nauvim shall validate policy keys and values against this subclause when loading the client configuration, including for host entries that are not selected. Unknown keys, invalid values and missing required fields in a list entry shall be configuration-validation errors under 8.1.2.
+Nauvim shall validate policy keys and values against this subclause when loading the client configuration, including for any unselected `Host` configuration. Unknown keys, invalid values and missing required fields in a list entry shall be configuration-validation errors under 8.1.2.
 
 `plugin.filesystem.copy = true` shall permit `filesystem.copy` into the process temporary directory. `plugin.http.serve_file = true` shall permit `http.serve_file` from that directory. `plugin.clipboard.copy = true` shall permit host-initiated writes through `clipboard.copy` to the client clipboard. A Boolean value of `false` shall grant no permission.
 
@@ -1128,7 +1126,7 @@ Permission under this subclause shall remain subject to the applicable method re
 
 #### 8.4.1 Structure, names and validation
 
-The SSH settings for a host entry with alias `X` shall be supplied by the Lua table `config.hosts[X].ssh`. In this clause, a **native SSH host table** means this table or an inline jump-host table specified in 8.4.6.
+In this clause, a **native SSH host table** means the Lua table `config.hosts[X].ssh` for a host with alias `X`, the Lua table `config.default_host.ssh` when `default_host` is a `Host` table, or an inline jump-host table specified in 8.4.6.
 
 The type `SshHostConf` for native SSH host tables shall be:
 
@@ -1290,7 +1288,7 @@ Supplementation from the OpenSSH configuration source is governed by 8.5.4.
 
 #### 8.5.3 Resolution procedure
 
-For an SSH destination, after applying 8.3 where applicable, Nauvim shall resolve the supplied SSH lookup name `X` as follows:
+After applying 8.3 where applicable, Nauvim shall use the following steps to resolve the supplied SSH lookup name `X` for a destination selected by alias.
 
 1. If `H[X] == nil`, obtain and return `O(X)`. If that operation fails, return the error as specified in 8.5.4. The procedure shall then terminate; steps 2 to 5 shall not apply.
 2. Otherwise, let `B` be `H[X]` and let `Y` be its supplied `host_name`. If `host_name` is absent, use `X` as `Y`, in accordance with the default for `host_name` in Table 3.
@@ -1305,6 +1303,8 @@ The lookup of `H[Y]` in step 3 shall be one direct lookup. Nauvim shall not recu
 If `Y == X`, the native merge shall leave the supplied table unchanged. If settings remain absent, step 4 shall use `O(X)` before native defaults are applied.
 
 If a Nauvim entry exists for `Y` but contains no `.ssh` table, it shall not supply native SSH settings. In this SSH-resolution context, `H[Y] == nil`; step 4 shall apply to any remaining absent settings using `O(Y)`.
+
+When resolving the independent default `Host` with SSH settings, let `B` be `config.default_host.ssh`. If `B.host_name` is absent, host resolution shall fail under 8.5.4 and 6.9. Otherwise, Nauvim shall use `B.host_name` as the SSH lookup name `Y` and apply steps 3 to 5.
 
 <a name="openssh-configuration-source"></a>
 
@@ -1326,7 +1326,7 @@ Where the implementation processes an `Include` directive, that processing forms
 
 Native SSH host tables shall retain their supplied-field information until the native and OpenSSH supplementation steps are complete. A built-in default shall not be treated as a supplied native value that overrides a setting obtained from either source.
 
-For a native host resolved under steps 2 to 5 of 8.5.3, and for an inline jump host resolved under 8.4.6, the defaults in Table 3 shall fill only settings that remain absent after the native table merge and the OpenSSH-source processing under 8.5.4. Using the default for `host_name` to select `Y` shall not cause other defaults to be inserted into `B` before merging.
+When applying step 5 of 8.5.3, the defaults in Table 3 shall fill only settings that remain absent after the native table merge and the OpenSSH-source processing under 8.5.4. Using the default for `host_name` to select `Y` shall not cause other defaults to be inserted into `B` before merging.
 
 EXAMPLE If the native settings do not supply `port` and the implementation adopts `2222` from an OpenSSH `Port` directive, the resulting port is `2222`. The native default `22` does not override that adopted value.
 
@@ -1429,11 +1429,11 @@ NvimProg := {
 
 An omitted or nil `prog` shall default to `"nvim"`. An omitted or nil `args` shall default to an empty list of configured arguments. An omitted or nil `env` shall default to an empty dictionary of configured environment entries. The execution interpretation of that dictionary shall remain subject to 8.7.2.
 
-The settings shall accept the following types, irrespective of whether the host Neovim is local or remote:
+In the following annotations, `host` denotes a named entry in `hosts` or the independent default `Host`. The settings shall accept these types for both local and remote host Neovims.
 
 ```text
-hosts[X].nvim: string | NvimProg | (func(HostInfo) -> (string | NvimProg)) | nil
-hosts[X].socket: string | (func(HostInfo) -> string) | nil
+host.nvim: string | NvimProg | (func(HostInfo) -> (string | NvimProg)) | nil
+host.socket: string | (func(HostInfo) -> string) | nil
 ```
 
 An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply when no Lua host entry supplies the setting; host selection shall continue to follow 8.3 and 8.5.
@@ -2791,7 +2791,7 @@ return {
 
 The `"local"` entry has no SSH settings and therefore designates a local host Neovim. The `"my-host"` entry includes SSH settings and is selected for automatic startup connection by the top-level `default_host` setting.
 
-If `default_host` were `nil` in this example, the startup choices on the welcome page would be the two configured entries and the independent default `Host`. The entry with the host alias `"local"` would remain distinct from that default `Host`.
+If `default_host` were `nil` in this example, the startup choices on the welcome page would be the two named entries and the independent default `Host`. The independent choice would use the built-in local configuration.
 
 The local entry uses string-valued `nvim` and `socket` settings, so resolving those fields does not require `HostInfo` for the host environment. Nauvim still makes `ClientInfo` available before configuration execution.
 
@@ -3008,6 +3008,45 @@ policies = {
         http = { open_webview = { origins = "all" } },
         local_forward = { tcp = "all", socket = "all" },
     },
+}
+```
+
+<a name="example-default-host-configuration"></a>
+
+### A.11 Independent default host configuration
+
+With no named entries, Nauvim automatically selects the independent default `Host`, whose launch program is `/path/to/nvim`.
+
+```lua
+return {
+    default_host = { nvim = "/path/to/nvim" },
+}
+```
+
+With a named entry and a `Host` table as `default_host`, Nauvim opens the welcome page and offers both `non_empty` and the independent default `Host`. If the user selects the independent choice, its launch program is `/path/to/nvim`.
+
+```lua
+return {
+    hosts = { non_empty = {} },
+    default_host = { nvim = "/path/to/nvim" },
+}
+```
+
+A string `default_host` selects the named entry `my_own_default` for automatic startup. This entry specifies `/path/to/nvim` as its launch program.
+
+```lua
+return {
+    hosts = { my_own_default = { nvim = "/path/to/nvim" } },
+    default_host = "my_own_default",
+}
+```
+
+A nil `default_host` opens the welcome page in the following example. The `my_own_default` choice specifies `/path/to/nvim` as its launch program. The independent choice uses the built-in local configuration.
+
+```lua
+return {
+    hosts = { my_own_default = { nvim = "/path/to/nvim" } },
+    default_host = nil,
 }
 ```
 
