@@ -940,7 +940,7 @@ Before executing the configuration file, `nauvim-core` shall inject the `nauvim-
 
 #### 8.1.1 Lua module search path
 
-When loading the Lua configuration file, `nauvim-core` shall configure the Lua module search path before executing the configuration's Lua code.
+When loading the Nauvim Lua configuration file specified in 8.1, `nauvim-core` shall configure the Lua module search path before executing the configuration's Lua code.
 
 Let `config_file` be the non-nil, symbolic-link-resolved absolute path in `ClientInfo`. The module search root `ROOT` shall be the parent directory of that path, irrespective of the configuration file's name.
 
@@ -954,15 +954,23 @@ ROOT = config_file.parent
 ROOT/lua/?.lua;ROOT/lua/?/init.lua
 ```
 
-The existing `package.path` entries shall be retained after these templates. The added templates shall have the highest priority within the Lua-file search performed through `package.path`.
+The existing `package.path` entries shall be retained after these templates. The two `ROOT/lua` templates shall have the highest priority within the Lua-file search performed through `package.path`.
 
 For a module name such as `foo.bar`, these templates shall search `ROOT/lua/foo/bar.lua` and then `ROOT/lua/foo/bar/init.lua`, with dots in the module name interpreted as directory separators.
 
-The search-path additions specified in this subclause shall be limited to these local Lua-module templates. `nauvim-core` shall not add search paths for Neovim-specific libraries or other Neovim runtime directories.
+Nauvim should let users supply one or more additional Lua module search paths in the client environment. The mechanism for supplying these paths is unspecified.
 
-NOTE 1 Lua module-file search paths contain filename templates separated by semicolons. See [9].
+When Nauvim accepts user-supplied paths, `nauvim-core` shall make them available to `require()` through `package.path` before executing the configuration's Lua code.
 
-NOTE 2 These templates follow Neovim's local Lua-module layout and search order. See [20].
+Under this subclause, `nauvim-core` shall add only the two `ROOT/lua` templates and any user-supplied paths to `package.path`.
+
+NOTE 1 Lua module-file search paths contain filename templates separated by semicolons. See `package.searchpath()` in [9].
+
+NOTE 2 The `ROOT/lua` templates follow Neovim's local Lua-module layout and search order. See [20].
+
+NOTE 3 An implementation can accept paths through command-line arguments or environment variables.
+
+NOTE 4 Neovim loads its own configuration separately. See [25].
 
 <a name="configuration-loading-failures"></a>
 
@@ -2917,9 +2925,11 @@ Table A.2 illustrates the root selection specified in 8.1.1. The paths in the fi
 | `/work/custom.lua` | `/work` | `/work/lua/?.lua;/work/lua/?/init.lua` |
 | `/work/config/init.lua` | `/work/config` | `/work/config/lua/?.lua;/work/config/lua/?/init.lua` |
 
-For either of the first two configuration files, the added templates allow a lookup of `require("another.module")` to search `/work/lua/another/module.lua` and then `/work/lua/another/module/init.lua` before the previously configured Lua-file templates. The configuration filename does not affect the root selection.
+For either of the first two configuration files, the first two `package.path` candidates for `require("another.module")` are `/work/lua/another/module.lua` and `/work/lua/another/module/init.lua`, in that order. The configuration filename does not affect the root selection.
 
-For the third configuration file, the same lookup searches `/work/config/lua/another/module.lua` and then `/work/config/lua/another/module/init.lua` before the previously configured Lua-file templates.
+For the third configuration file, the first two candidates are `/work/config/lua/another/module.lua` and `/work/config/lua/another/module/init.lua`, in that order.
+
+If Nauvim accepts the user-supplied path `/home/user/shared-lua/?.lua`, `require("my_tools")` in the first statement of Nauvim's `init.lua` can load `/home/user/shared-lua/my_tools.lua`. The `ROOT/lua` templates have priority over the user-supplied path.
 
 <a name="example-neovim-program-specifications"></a>
 
@@ -3186,3 +3196,5 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 [23] IETF. [RFC 8252: OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.html#section-3), Section 3, definition of reverse domain name notation.
 
 [24] Rust. [`std::env::consts`](https://doc.rust-lang.org/stable/std/env/consts/index.html).
+
+[25] Neovim. [Starting Nvim — Initialization](https://neovim.io/doc/user/starting/#initialization).
