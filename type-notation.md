@@ -188,6 +188,36 @@ EXAMPLE The following expressions denote the same dictionary shape.
 { name: string, port: int }
 ```
 
+<a name="dictionary-complement"></a>
+
+### 6.8 `T \ U`
+
+In `T \ U`, both `T` and `U` shall be subtypes of the same dictionary type `dict[K, V]` (6.2).
+
+`T \ U` shall denote a single dictionary type with the following field types.
+
+- A key permitted only by `T` shall retain its value type from `T`.
+- A key permitted only by `U` shall have no effect on the result.
+- For a key permitted by both operands, let `V1` be the value type in `T` and `V2` be the value type in `U`. The resulting value type shall be `V1 \ (V1 ∩ V2)`. In this formula, `∩` and `\` denote set intersection and set difference over the values admitted by the types, respectively. An empty difference shall give the field type `nil`. A field of the resulting type `nil` shall be absent.
+
+Other field-presence requirements, defaults and the treatment of omitted or nil fields shall follow 7.3.
+
+EXAMPLE 1 The following expressions denote the same dictionary shape.
+
+```text
+{ name: string, port: int } \ { port: int, enabled: bool }
+
+{ name: string }
+```
+
+EXAMPLE 2 The following expressions denote the same dictionary shape.
+
+```text
+{ key: string | int } \ { key: int }
+
+{ key: string }
+```
+
 <a name="declarations-and-annotations"></a>
 
 ## 7 Declarations and annotations
