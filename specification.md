@@ -960,7 +960,7 @@ For a module name such as `foo.bar`, these templates shall search `ROOT/lua/foo/
 
 Nauvim should let users supply one or more additional Lua module search paths in the client environment. The mechanism for supplying these paths is unspecified.
 
-When Nauvim accepts user-supplied paths, `nauvim-core` shall make them available to `require()` through `package.path` before loading the configuration file.
+When Nauvim accepts user-supplied paths, `nauvim-core` shall make them available to `require()` through `package.path` before executing the configuration's Lua code.
 
 Under this subclause, `nauvim-core` shall add only the two `ROOT/lua` templates and any user-supplied paths to `package.path`.
 
