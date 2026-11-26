@@ -10,7 +10,7 @@ This document specifies the architecture and behaviour of Nauvim, a system that 
 
 It covers local and remote session management, remote procedure call (RPC) communication with host Neovims, plugin interfaces, client operations, configuration, build-time features and dependencies. It also specifies the initial platform targets and user interaction model.
 
-This document applies to the initial `nauvim` application, which uses Flutter, and the components that are independent of the user interface (UI). Native input method editor (IME) integration is outside its scope.
+This document applies to the initial `nauvim` application, which uses Flutter, and the components that are independent of the user interface (UI). It covers native input method support for the attached editor in `nauvim`.
 
 Clause 8 defines the scope of the configuration interface. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
 
@@ -394,6 +394,70 @@ Note 1 to entry: Its lifecycle is specified in 6.6.5, and the path-interpretatio
 string identifying a concrete `nauvim` implementation
 
 Note 1 to entry: A UI implementation ID identifies an application implementation, rather than an individual running process. It is distinct from the *client ID* ([3.46](#client-identifier)).
+
+<a name="client-text-input-system"></a>
+
+### 3.49 client text input system
+
+facilities in the *client environment* ([3.4](#client-environment)) through which applications receive text input
+
+Note 1 to entry: GTK and AppKit provide examples of interfaces to such facilities. See [26] and [27].
+
+<a name="active-text-input-target"></a>
+
+### 3.50 active text input target
+
+application UI element currently designated to receive input through the *client text input system* ([3.49](#client-text-input-system))
+
+<a name="native-input-method"></a>
+
+### 3.51 native input method
+
+input facility available through the *client text input system* ([3.49](#client-text-input-system)) that interprets user input to produce text
+
+<a name="native-text-input"></a>
+
+### 3.52 native text input
+
+routing of input for an application text input target through the *client text input system* ([3.49](#client-text-input-system))
+
+<a name="input-method-activation"></a>
+
+### 3.53 input method activation
+
+enabling of a *native input method* ([3.51](#native-input-method)) to process input for the *active text input target* ([3.50](#active-text-input-target))
+
+<a name="input-source-selection"></a>
+
+### 3.54 input source selection
+
+choice of a source, such as a keyboard layout or a *native input method* ([3.51](#native-input-method)), through which the *client text input system* ([3.49](#client-text-input-system)) interprets input
+
+<a name="conversion-mode"></a>
+
+### 3.55 conversion mode
+
+state within a *native input method* ([3.51](#native-input-method)) that determines how it converts input to text
+
+<a name="composition"></a>
+
+### 3.56 composition
+
+process of forming or revising provisional text before it is committed
+
+<a name="preedit-text"></a>
+
+### 3.57 preedit text
+
+provisional text supplied for display during *composition* ([3.56](#composition))
+
+<a name="committed-text"></a>
+
+### 3.58 committed text
+
+text supplied by the *client text input system* ([3.49](#client-text-input-system)) for delivery to the *active text input target* ([3.50](#active-text-input-target))
+
+Note 1 to entry: Committed text can be supplied directly or as the result of composition.
 
 <a name="architecture"></a>
 
@@ -1006,6 +1070,7 @@ The configuration interface shall provide settings for:
 - the Neovim program specification and Neovim configuration files;
 - client-side security policies;
 - the client-side clipboard backend and its timeout setting;
+- native text input for the attached editor;
 - UI-specific application settings, including fonts.
 
 The configuration scope is limited to Nauvim application settings. An extensive editor-configuration interface comparable to Neovim's is outside the scope of this document.
@@ -1049,6 +1114,7 @@ Config := {
     default_host: string | Host | nil,
     hosts: dict[string, Host] | nil,
     hosts_default_params: Host \ { ssh: SshHostConf | nil },
+    ime: bool | nil,
     ssh: SshConf | nil,
     ui_opts: dict[string, dict[string, object]] | nil,
     use_ui_opts: string | nil,
@@ -1058,6 +1124,8 @@ config: Config
 ```
 
 The requirements for `Host`, `Clipboard` and `SshConf` shall be as specified in 8.3, 8.8 and 8.9, respectively. Shared host parameters shall follow 8.3.3 and use [dictionary complement](type-notation.md#dictionary-complement) to exclude the `ssh` field. UI-specific configuration shall follow 8.10. Startup host selection shall follow 8.2.1.
+
+An omitted or nil `ime` field shall be equivalent to `ime = true`. For the attached editor, `ime = true` shall select native text input and `ime = false` shall select the ordinary Neovim key path. Input routing shall follow 10.2.
 
 <a name="host-configuration"></a>
 
@@ -1771,7 +1839,7 @@ NOTE `openrussh-client` is developed as a separate project.
 
 ### 10.1 Keyboard and mouse interaction
 
-`nauvim` shall accept keyboard and mouse input.
+`nauvim` shall accept keyboard and mouse input. Native text input and its interaction with the ordinary keyboard path for the attached editor shall follow 10.2.
 
 When clipboard functionality is enabled, `nauvim` should provide key bindings that users would find natural on the client platform to invoke the GUI paste functionality of `nauvim-core` specified in 7.8. The specific key bindings are unspecified.
 
@@ -1793,17 +1861,27 @@ NOTE The prohibited delivery includes sending mouse input using `nvim_input_mous
 
 ### 10.2 Input method editors
 
-Native IME integration is outside the scope of this document.
+`nauvim` shall handle native text input in its UI layer. When native text input is selected and the attached editor has focus, `nauvim` shall make that route available regardless of the host Neovim's mode. Runtime controls for changing the input route, if provided, are UI-specific.
 
-Neovim plugins can provide input-method functionality within the host Neovim.
+`nauvim` shall leave input method activation, input source selection and conversion modes under the control of the client text input system. The client environment determines which of those controls are available.
 
-EXAMPLE `skkeleton` provides a plugin-based input method.
+When routing editor input through the client text input system, `nauvim` shall follow that system's disposition of key events. It shall use the ordinary Neovim key path for events that the system explicitly returns for ordinary handling. It shall not also deliver events consumed by the system through that path.
+
+`nauvim` shall keep preedit text in the client environment. It shall send committed text to the host Neovim for the originating attachment, in the order the client text input system supplied it. It shall deliver that text literally, including text resembling Neovim key notation. The host Neovim's ordinary input processing determines the result.
+
+EXAMPLE A commit containing `<Esc>` reaches the host Neovim as the five characters `<`, `E`, `s`, `c` and `>`.
+
+When `nauvim` draws preedit text, it shall draw it at the active input position using the same font selection, font size, baseline and glyph metrics as ordinary text at that position. It shall visually distinguish the preedit and use any composition caret, selection or segment information supplied for it. Where the client text input system supports candidate placement using geometry supplied by the application, `nauvim` shall provide caret or preedit geometry for the active input position.
+
+`nauvim` shall clear pending composition when it ends or is cancelled, when the editor ceases to be the active text input target, or when the attachment ends. It shall bind each text input update to the session and attachment that received it. It shall apply updates only to their originating session while their originating attachment remains established. It shall apply preedit updates only while the editor is the active text input target.
+
+NOTE Neovim plugins, such as `skkeleton`, can provide input-method functionality within the host Neovim.
 
 <a name="placement-and-rendering-of-neovim-windows-and-grids"></a>
 
 ### 10.3 Placement and rendering of Neovim windows and grids
 
-The arrangement and rendering of Neovim windows and UI grids are implementation-dependent.
+The arrangement and rendering of Neovim windows and UI grids are implementation-dependent, subject to the preedit presentation requirements in 10.2.
 
 The cell-coordinate requirements for `nauvim-plugin::http.open_webview` in 11.5.3 shall apply relative to the specified grid.
 
@@ -3227,3 +3305,7 @@ The mandatory terminal-allocation policy in 8.5.6 continues to apply: Nauvim ign
 [24] Rust. [`std::env::consts`](https://doc.rust-lang.org/stable/std/env/consts/index.html).
 
 [25] Neovim. [Starting Nvim — Initialization](https://neovim.io/doc/user/starting/#initialization).
+
+[26] GTK. [`Gtk.IMContext`](https://docs.gtk.org/gtk4/class.IMContext.html).
+
+[27] Apple. [`NSTextInputClient`](https://developer.apple.com/documentation/appkit/nstextinputclient).
