@@ -993,7 +993,7 @@ For other failures in loading the Nauvim Lua configuration, Nauvim shall display
 
 The fallback shall use the Nauvim default configuration. Defaults expressly specified in this document shall apply; the remaining default values shall be specified separately. Where this document specifies a field-specific fallback or recovery rule, that rule shall apply.
 
-Failures in obtaining required OpenSSH-source settings during host resolution shall instead follow 8.5.4 and the connection-failure procedure in 6.9.
+Failures in obtaining required settings from an enabled SSH configuration source during host resolution shall instead follow 8.5.4 and the connection-failure procedure in 6.9.
 
 <a name="configuration-scope"></a>
 
@@ -1029,13 +1029,13 @@ Nauvim shall validate `default_host` during configuration loading. A table suppl
 For a configuration that passes validation, Nauvim shall select its startup destination as follows:
 
 1. If `hosts` is empty and `default_host` is either nil or a `Host` table, Nauvim shall select the default `Host` as its automatic startup destination and initiate a connection to it.
-2. If `hosts` is empty and `default_host` is a non-empty string `X`, Nauvim shall obtain the SSH settings for `X` from the OpenSSH configuration source under 8.5 and initiate a connection using those settings and the applicable defaults for the host Neovim.
+2. If `hosts` is empty and `default_host` is a non-empty string `X`, Nauvim shall resolve `X` as an SSH lookup name under 8.5 and initiate a connection using the resolved settings and the applicable defaults for the host Neovim.
 3. If `hosts` is non-empty and `default_host` is either nil or a `Host` table, Nauvim shall display the welcome page and wait for the user to select a host. The choices shall comprise every `Host` entry in `hosts` and the default `Host`. Nauvim shall initiate the selected connection after the user makes that selection.
-4. If `hosts` is non-empty and `default_host` is a non-empty string `X`, Nauvim shall first look for `hosts[X]`. If that entry exists, Nauvim shall initiate a connection using its merged `Host` configuration under 8.3 and applying 8.5 where applicable. Otherwise, Nauvim shall obtain the SSH settings for `X` from the OpenSSH configuration source under 8.5 and initiate a connection using those settings and the applicable defaults for the host Neovim.
+4. If `hosts` is non-empty and `default_host` is a non-empty string `X`, Nauvim shall first look for `hosts[X]`. If that entry exists, Nauvim shall initiate a connection using its merged `Host` configuration under 8.3 and applying 8.5 where applicable. Otherwise, Nauvim shall resolve `X` as an SSH lookup name under 8.5 and initiate a connection using the resolved settings and the applicable defaults for the host Neovim.
 
 The presentation of the default `Host` should distinguish it clearly from the named entries in `hosts`, including user-defined entries with the host aliases `"default"` or `"local"`. Both aliases shall remain available for user-defined entries. The concrete selection interaction and display labels are otherwise unspecified.
 
-Connection to a selected destination shall follow the startup, ownership, reuse and attachment requirements in Clause 6. OpenSSH-source failures shall follow 8.5.4 and 6.9.
+Connection to a selected destination shall follow the startup, ownership, reuse and attachment requirements in Clause 6. Failures when using an enabled SSH configuration source shall follow 8.5.4 and 6.9.
 
 <a name="configuration-structure"></a>
 
@@ -1086,7 +1086,7 @@ Named entries and the independent default `Host` shall use the shared parameters
 
 A selected `Host` with omitted or nil `ssh` shall designate a host Neovim running in the client environment. Nauvim shall apply this local-host rule before SSH host resolution. If the selected `Host` contains SSH settings, Nauvim shall resolve them under 8.5.
 
-If an explicitly supplied host alias `X` has no entry in `config.hosts`, Nauvim shall resolve `X` through the OpenSSH configuration source in accordance with 8.5.
+If an explicitly supplied host alias `X` has no entry in `config.hosts`, Nauvim shall resolve `X` as an SSH lookup name under 8.5.
 
 <a name="host-specific-security-policies"></a>
 
@@ -1125,7 +1125,7 @@ SocketForwardPolicyEntry := {
 }
 ```
 
-After applying 8.3.3 where applicable, an omitted, nil or empty `policies` table shall grant no permissions. An omitted or nil policy field shall grant no permission through that field. These defaults shall apply to every `Host` configuration, including the independent default `Host`. A destination selected by alias and resolved solely through OpenSSH because it has no entry in `hosts` shall grant no permissions.
+After applying 8.3.3 where applicable, an omitted, nil or empty `policies` table shall grant no permissions. An omitted or nil policy field shall grant no permission through that field. These defaults shall apply to every `Host` configuration, including the independent default `Host`. A destination selected by alias with no entry in `hosts` shall grant no permissions.
 
 Nauvim shall validate policy keys and values against this subclause when loading the client configuration, including for any unselected `Host` configuration. It shall apply the recovery rules in 8.1.2 to unrecognized keys and unsupported value types, including within forwarding policy list entries. A list entry supplied without a required field or a value that violates the restrictions for its supported type shall be a configuration-validation error under 8.1.2.
 
@@ -1201,7 +1201,7 @@ Table 3 specifies the accepted native SSH fields and their defaults. A native de
 | Lua field | Accepted value | Native default |
 | --- | --- | --- |
 | `host_name` | String | Supplied SSH lookup name |
-| `user` | String | Current operating-system user in the client environment |
+| `user` | String | Effective operating-system user name in the client environment |
 | `port` | Integer or decimal string representing an integer from 0 to 65535, inclusive | `22` |
 | `identity_file` | Absolute path string for one identity file | No configured identity file |
 | `certificate_file` | Absolute path string for one SSH user certificate | None |
@@ -1261,11 +1261,11 @@ Each jump host, including an inline jump host, shall have its own algorithm poli
 
 The `proxy_jump` setting shall accept an SSH host alias string, an inline jump-host table, or an ordered list whose elements are SSH host alias strings or inline jump-host tables.
 
-A string shall designate an SSH host alias resolved using 8.5. Each jump host shall use the same lookup and supplementation rules as other SSH destinations. Native SSH settings shall take precedence. Supplementation from the OpenSSH configuration source shall follow 8.5.4 before native defaults are applied.
+A string shall designate an SSH host alias resolved using 8.5. Each jump host shall use the same lookup and supplementation rules as other SSH destinations. Native SSH settings shall take precedence. When the SSH configuration source is enabled under 8.9, supplementation from that source shall follow 8.5.4 before native defaults are applied.
 
-An inline jump-host table shall accept the same SSH fields as the native SSH host table for a named host, including a nested `proxy_jump`. Its `host_name` shall designate a literal network destination. For an inline jump host with SSH lookup name `Y`, Nauvim shall use the inline table as `B` and apply steps 3 to 5 of 8.5.3. Its explicitly supplied values shall take precedence over the native settings in `H[Y]` and the OpenSSH settings in `O(Y)`.
+An inline jump-host table shall accept the same SSH fields as the native SSH host table for a named host, including a nested `proxy_jump`. Its `host_name` shall designate a literal network destination. For an inline jump host with SSH lookup name `Y`, Nauvim shall use the inline table as `B` and apply steps 3 to 5 of 8.5.3. Its explicitly supplied values shall take precedence over the native settings in `H[Y]` and any settings adopted from `O(Y)`.
 
-The SSH lookup name for an inline jump host shall be its supplied `host_name`, subject to the applicable default for `host_name`. The resolved settings shall provide the destination. If a required SSH lookup name cannot be obtained, the ordinary host-resolution failure rules in 8.5.4 and 6.9 shall apply.
+The SSH lookup name for an inline jump host shall be its supplied `host_name`, subject to the applicable default for `host_name`. The resolved settings shall provide the destination. If a required SSH lookup name cannot be obtained, host resolution shall fail and Nauvim shall handle the failure under 6.9.
 
 An empty list, written as `{}` in Lua, shall select no jump hosts. The native string `"none"` shall be treated as a literal SSH host alias.
 
@@ -1292,7 +1292,7 @@ If `config.hosts` is omitted or nil, `H[X]` shall be nil for every `X`.
 
 The merge specified below shall use only SSH settings. It shall not inherit `nvim`, `socket` or `policies` from another `Host` configuration.
 
-`O(X)` denotes the SSH settings obtained for the supplied SSH lookup name `X` by applying 8.5.4 to the client-side OpenSSH configuration file selected under 8.9.
+When the SSH configuration source is enabled under 8.9, `O(X)` denotes the SSH settings obtained for the supplied SSH lookup name `X` from the selected client-side file under 8.5.4.
 
 The local-host selection rule in 8.3 shall precede this procedure when Nauvim selects a host Neovim. SSH jump-host resolution shall use the SSH collection `H`.
 
@@ -1315,7 +1315,7 @@ In particular, the merge shall not combine jump-host or algorithm lists, or recu
 
 The `host_name` field shall participate in this merge in the same way as the other fields. If `B` supplies `host_name`, the value shall remain effective even if `A` supplies a different destination name.
 
-Supplementation from the OpenSSH configuration source is governed by 8.5.4.
+Supplementation from an enabled SSH configuration source is governed by 8.5.4.
 
 <a name="resolution-procedure"></a>
 
@@ -1323,33 +1323,35 @@ Supplementation from the OpenSSH configuration source is governed by 8.5.4.
 
 After applying 8.3 where applicable, Nauvim shall use the following steps to resolve the supplied SSH lookup name `X` for a destination selected by alias.
 
-1. If `H[X] == nil`, obtain and return `O(X)`. If that operation fails, return the error as specified in 8.5.4. The procedure shall then terminate; steps 2 to 5 shall not apply.
+1. If `H[X] == nil`, resolve `X` as follows and return the result. Steps 2 to 5 shall not apply.
+   - With the SSH configuration source enabled, obtain `O(X)`. If that operation fails, return the error as specified in 8.5.4.
+   - With the SSH configuration source disabled, apply the defaults in Table 3 with `X` as the supplied SSH lookup name and all native fields initially absent.
 2. Otherwise, let `B` be `H[X]` and let `Y` be its supplied `host_name`. If `host_name` is absent, use `X` as `Y`, in accordance with the default for `host_name` in Table 3.
 3. Let `R` initially contain the explicitly supplied settings in `B`. If `H[Y] ~= nil`, merge that native SSH table into `R` in accordance with 8.5.2, preserving the precedence of the settings supplied by `B`.
-4. If settings remain absent from `R`, obtain `O(Y)` and use it as the source of supplementation under 8.5.4. Any settings adopted in this step shall fill only settings still absent after the native merge. If this operation encounters an error, return the error as specified in 8.5.4.
+4. If settings remain absent from `R` and the SSH configuration source is enabled under 8.9, obtain `O(Y)` and use it as the source of supplementation under 8.5.4. Any settings adopted in this step shall fill only settings still absent after the native merge. If this operation encounters an error, return the error as specified in 8.5.4.
 5. Apply the defaults for settings that remain absent in accordance with 8.5.5, and return the result.
 
 The resulting precedence shall be: the explicitly supplied settings in `B`, then settings from `H[Y]` when that table exists, then any settings adopted from `O(Y)`, and finally native defaults. The shallow merge requirement in 8.5.2 shall apply to the native table merge in step 3.
 
-The lookup of `H[Y]` in step 3 shall be one direct lookup. Nauvim shall not recursively apply this host-resolution procedure to that table before merging it into `R`. In particular, it shall not follow that table's `host_name` to perform another native or OpenSSH lookup. Nested jump-host processing under 8.4.6 is a separate operation.
+The lookup of `H[Y]` in step 3 shall be one direct lookup. Nauvim shall not recursively apply this host-resolution procedure to that table before merging it into `R`. In particular, it shall not follow that table's `host_name` to perform another native lookup or a lookup in the SSH configuration source. Nested jump-host processing under 8.4.6 is a separate operation.
 
-For a destination selected by alias, if `Y == X`, the native merge shall leave the supplied table unchanged. If settings remain absent, step 4 shall use `O(X)` before native defaults are applied.
+For a destination selected by alias, if `Y == X`, the native merge shall leave the supplied table unchanged. When step 4 applies, it shall use `O(X)` before native defaults are applied.
 
-If a Nauvim entry exists for `Y` but contains no `.ssh` table, it shall not supply native SSH settings. In this SSH-resolution context, `H[Y] == nil`; step 4 shall apply to any remaining absent settings using `O(Y)`.
+If a Nauvim entry exists for `Y` but contains no `.ssh` table, it shall not supply native SSH settings. In this SSH-resolution context, `H[Y] == nil` and any supplementation shall follow step 4.
 
-When resolving the independent default `Host` with SSH settings, let `B` be `config.default_host.ssh`. If `B.host_name` is absent, host resolution shall fail under 8.5.4 and 6.9. Otherwise, Nauvim shall use `B.host_name` as the SSH lookup name `Y` and apply steps 3 to 5.
+When resolving the independent default `Host` with SSH settings, let `B` be `config.default_host.ssh`. If `B.host_name` is absent, host resolution shall fail and Nauvim shall handle the failure under 6.9. Otherwise, Nauvim shall use `B.host_name` as the SSH lookup name `Y` and apply steps 3 to 5.
 
 <a name="openssh-configuration-source"></a>
 
 #### 8.5.4 OpenSSH configuration source, compatibility and errors
 
-When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the OpenSSH configuration file selected under 8.9 and use it as the configuration source for that host.
+When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the file using the path and format selected under 8.9 and use it as the SSH configuration source for that host.
 
-`nauvim-core` should interpret and apply that source in a manner that approximates OpenSSH behaviour as closely as practicable, subject to the explicit requirements of this document, including 8.5.6. The concrete parsing, selection and application of settings inherited from that source are unspecified. This document does not require a correct or complete implementation of OpenSSH configuration-file syntax or semantics, or equivalent host-resolution results. Conformance of the SSH client used internally by Nauvim to the OpenSSH client is outside the scope of this document.
+When the OpenSSH format is selected, `nauvim-core` should interpret and apply the source in a manner that approximates OpenSSH behaviour as closely as practicable, subject to the explicit requirements of this document, including 8.5.6. The concrete parsing, selection and application of settings inherited from that source are unspecified. This document does not require a correct or complete implementation of OpenSSH configuration-file syntax or semantics, or equivalent host-resolution results. Conformance of the SSH client used internally by Nauvim to the OpenSSH client is outside the scope of this document.
 
 The native Lua input rules, including field types, literal-name matching and the absence of a native `Include` directive, do not define the interpretation of the OpenSSH source. The native table merge in 8.5.2 does not prescribe how OpenSSH-derived settings are inherited. Annex B provides informative correspondences between `SshHostConf` fields and OpenSSH directives, illustrating inheritance of some or all configured values or OpenSSH default values without requiring a particular selection or application method.
 
-If an error occurs while reading or processing the required OpenSSH configuration source, or the required host settings cannot be obtained, host resolution shall fail and return the error to its caller. Nauvim shall not continue by using only the native table, substituting an empty configuration, selecting another configuration file, or relying on built-in connection defaults as a fallback for that error.
+If an error occurs while reading or processing the required SSH configuration source, or the required host settings cannot be obtained, host resolution shall fail and return the error to its caller. Nauvim shall not continue by using only the native table, substituting an empty configuration, selecting another configuration file, or relying on built-in connection defaults as a fallback for that error.
 
 Where the implementation processes an `Include` directive, that processing forms part of source evaluation and is not an error fallback.
 
@@ -1357,9 +1359,9 @@ Where the implementation processes an `Include` directive, that processing forms
 
 #### 8.5.5 Application of defaults
 
-Native SSH host tables shall retain their supplied-field information until the native and OpenSSH supplementation steps are complete. A built-in default shall not be treated as a supplied native value that overrides a setting obtained from either source.
+Native SSH host tables shall retain their supplied-field information until the native merge and any supplementation from the SSH configuration source are complete. A built-in default shall not be treated as a supplied native value that overrides a setting obtained from either source.
 
-When applying step 5 of 8.5.3, the defaults in Table 3 shall fill only settings that remain absent after the native table merge and the OpenSSH-source processing under 8.5.4. Using the default for `host_name` to select `Y` shall not cause other defaults to be inserted into `B` before merging.
+When applying step 5 of 8.5.3, the defaults in Table 3 shall fill only settings that remain absent after the native table merge and any supplementation under 8.5.4. Using the default for `host_name` to select `Y` shall not cause other defaults to be inserted into `B` before merging.
 
 EXAMPLE If the native settings do not supply `port` and the implementation adopts `2222` from an OpenSSH `Port` directive, the resulting port is `2222`. The native default `22` does not override that adopted value.
 
@@ -1484,7 +1486,7 @@ host.nvim: string | NvimProg | (func(HostInfo) -> (string | NvimProg)) | nil
 host.socket: string | (func(HostInfo) -> string) | nil
 ```
 
-The following field defaults shall apply after the merge in 8.3.3 where applicable. An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply to a destination resolved solely through OpenSSH. Host selection shall follow 8.3 and 8.5.
+The following field defaults shall apply after the merge in 8.3.3 where applicable. An omitted or nil `nvim` setting shall default to `"nvim"`. The default for an omitted or nil `socket` setting is unspecified and shall remain subject to the socket and session-ownership requirements of this document. These field defaults shall also apply to a destination selected by alias with no entry in `hosts`. Host selection shall follow 8.3 and 8.5.
 
 For a directly supplied `nvim` string or `NvimProg`, or a directly supplied `socket` string, Nauvim shall use the supplied value without acquiring the host environment's `HostInfo` for that field. The requirement to make `ClientInfo` available before configuration execution in 8.6.3 shall still apply.
 
@@ -1607,22 +1609,34 @@ The top-level `ssh` setting shall have the following type:
 
 ```text
 SshConf := {
-    config: string | nil,
+    config: string | bool | {
+        path: string | nil,
+        format: "openssh" | "auto" | nil,
+        disabled: bool | nil,
+    } | nil,
     known_hosts: string | nil,
 }
 
 config.ssh: SshConf | nil
 ```
 
-Nauvim shall treat an omitted or nil `config.ssh` as an empty `SshConf` table.
+Nauvim shall treat an omitted or nil `config.ssh` as an empty `SshConf` table. It shall apply the recovery rules in 8.1.2, subject to the rule for ignored fields below.
 
-`config.ssh.config` shall select the OpenSSH configuration file used by 8.5. `config.ssh.known_hosts` shall select the known-hosts file used by Nauvim's SSH client.
+`config.ssh.config` shall control whether SSH host resolution under 8.5 uses an SSH configuration source. It shall select the path and format when the source is enabled. In the default paths below, `$HOME` denotes the home directory in the client environment.
 
-An omitted or nil `config` field shall default to `$HOME/.ssh/config`. An omitted or nil `known_hosts` field shall default to `$HOME/.ssh/known_hosts`. In this default-path notation, `$HOME` denotes the home directory in the client environment.
+A string `P` shall be equivalent to `{ path = P, format = "openssh", disabled = false }`. An omitted or nil `config` field or a value of `true` shall enable the source with path `$HOME/.ssh/config` and format `"openssh"`. A value of `false` shall be equivalent to `{ disabled = true }`.
 
-Path values in `SshConf` shall be absolute paths in the client environment. A relative or empty path shall be a configuration-validation error and shall be handled under 8.1.2.
+For a table, Nauvim shall apply the recovery rules in 8.1.2 to `disabled` before determining whether the source is enabled. An omitted, nil or false `disabled` field shall enable the source. With `disabled = true`, `nauvim-core` shall ignore `path` and `format`, including when validating the configuration. It shall skip reading the SSH configuration file and applying settings from the source during SSH host resolution, including for jump hosts.
 
-Nauvim may omit permission checks for the paths in `SshConf`. Conformance to the OpenSSH client's permission-checking behaviour is not required. Errors encountered when accessing these files shall be handled under the otherwise applicable requirements of this document, including 8.5.4 for the OpenSSH configuration source.
+For an enabled source, an omitted or nil `path` shall select `$HOME/.ssh/config`. Nauvim shall match format names case-insensitively. An omitted or nil `format` shall select `"openssh"`. A string that matches neither format name shall be a configuration-validation error under 8.1.2. Format selection for `"auto"` is unspecified. Changes to that selection shall be considered backward compatible under 5.4.
+
+NOTE The initial implementation is expected to select `"openssh"` for `"auto"`. An implementation can select a format based on the file extension and use `"openssh"` when the extension does not identify a format.
+
+`config.ssh.known_hosts` shall select the known-hosts file used by Nauvim's SSH client independently of the SSH configuration source. An omitted or nil `known_hosts` field shall default to `$HOME/.ssh/known_hosts`.
+
+A supplied path for an enabled source and a supplied `known_hosts` path shall be absolute in the client environment. A relative or empty path shall be a configuration-validation error under 8.1.2.
+
+Nauvim may omit permission checks for the paths in `SshConf`. Conformance to the OpenSSH client's permission-checking behaviour is not required. Errors encountered when accessing these files shall be handled under the otherwise applicable requirements of this document, including 8.5.4 for the enabled SSH configuration source.
 
 <a name="ui-specific-configuration"></a>
 
@@ -2853,7 +2867,7 @@ For `"my-host"`, the SSH lookup name is `"my-host.com"`. The example contains no
 
 ### A.4 SSH merge example
 
-The following excerpt illustrates native lookup and merging before supplementation from the OpenSSH configuration source:
+The following excerpt illustrates native lookup and merging with the OpenSSH configuration source enabled.
 
 ```lua
 return {
@@ -2893,7 +2907,7 @@ For `work`, `H["work"]` supplies the highest-priority values and `H["base"]` sup
 
 Resolving `work` does not recursively resolve the `base` table, read OpenSSH settings for `"server.example.com"`, or substitute that name for `"base"`. Its OpenSSH supplementation uses the lookup name `"base"`. Resolving `base` as a separate requested host is a separate operation under 8.5.3.
 
-If the native SSH host table for a destination selected by alias omits `host_name`, resolution uses the supplied alias as the SSH lookup name. The native merge with that same table leaves its supplied settings unchanged. If settings remain absent, resolution uses the OpenSSH configuration for that alias under 8.5.4. Native defaults are applied last.
+If the native SSH host table for a destination selected by alias omits `host_name`, resolution uses the supplied alias as the SSH lookup name. The native merge with that same table leaves its supplied settings unchanged. If settings remain absent and the source is enabled, resolution uses that source for the alias under 8.5.4. Native defaults fill the remaining fields.
 
 <a name="example-shallow-table-merge"></a>
 
@@ -3120,6 +3134,21 @@ return {
 
 Before built-in field defaults are applied, `program_path` has `nvim = "/path/to/nvim"` and `program_table` has `nvim = { prog = "/path/to/nvim" }`. In both entries, the supplied `nvim` setting replaces the shared program table in full. The `socket_only` entry keeps its socket setting and inherits `nvim = { args = { "arg" } }`. Since `default_host` is omitted, the independent local `Host` also inherits that program table.
 
+<a name="example-disabled-ssh-configuration-source"></a>
+
+### A.13 Disabled SSH configuration source
+
+The following configuration uses the alias `"build.example.org"` without an entry in `hosts`.
+
+```lua
+return {
+    ssh = { config = false },
+    default_host = "build.example.org",
+}
+```
+
+Nauvim uses the native defaults in Table 3 under 8.5.3. The resulting `host_name` is `"build.example.org"`, `user` is the client's effective operating-system user name, and `port` is `22`.
+
 <a name="openssh-directive-correspondences"></a>
 
 ## Annex B — OpenSSH directive correspondences
@@ -3128,7 +3157,7 @@ Before built-in field defaults are applied, `program_path` has `nvim = "/path/to
 
 Table B.1 identifies the OpenSSH directives corresponding to the native `SshHostConf` fields. The directive names and meanings are documented in `ssh_config(5)` [21].
 
-The table illustrates the intended direction of inheritance: for a setting absent from the native tables, an implementation can inherit some or all values configured by the corresponding directive, or some or all of its OpenSSH default values. The selection and method of inheritance are unspecified under 8.5.4. The table does not establish required directive coverage, value conversions or list-combination rules.
+When the OpenSSH format is selected, an implementation can use the corresponding directives to supplement settings absent from the native tables. It can inherit some or all values configured by each directive, or some or all of its OpenSSH default values. The selection and method of inheritance are unspecified under 8.5.4. The table does not establish required directive coverage, value conversions or list-combination rules.
 
 **Table B.1 — Informative mapping to OpenSSH directives**
 
