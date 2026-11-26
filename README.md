@@ -27,11 +27,11 @@ This README is an informative guide to the [Nauvim specification](specification.
 | [5 Environments and compatibility](specification.md#supported-environments-and-component-compatibility) | GNU/Linux and Apple Silicon macOS targets, Neovim support and core/plugin version compatibility. |
 | [6 Session management](specification.md#session-management) | Startup, ownership, reattachment, session switching, shutdown, resource cleanup and connection recovery. |
 | [7 Plugin interface and client operations](specification.md#plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
-| [8 Configuration](specification.md#configuration) | Lua loading and module search paths, forward compatibility, host selection, shared host parameters, host-specific security policies, SSH resolution, host and client information, program arguments, clipboard backends and UI-specific options. |
+| [8 Configuration](specification.md#configuration) | Lua loading and module search paths, forward compatibility, host selection, shared host parameters, host-specific security policies, SSH resolution and its optional configuration source, host and client information, program arguments, clipboard backends and UI-specific options. |
 | [9 Build-time features and dependencies](specification.md#build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
 | [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, grid rendering and the scope of IME support. |
 | [11 `nauvim-plugin` API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
-| [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, startup host selection, shared host parameters, plugin permissions, shallow merging, module search paths, program specifications, clipboard settings and UI-specific options. |
+| [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, startup host selection, shared host parameters, plugin permissions, shallow merging, SSH source selection, module search paths, program specifications, clipboard settings and UI-specific options. |
 | [Annex B — OpenSSH correspondences](specification.md#openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
 | [Bibliography](specification.md#bibliography) | Supporting Neovim, protocol, Lua and operating-system documentation. |
 
