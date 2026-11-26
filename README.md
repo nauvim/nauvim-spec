@@ -4,7 +4,7 @@ Nauvim is a system that provides a graphical user interface for Neovim.
 
 The design keeps host Neovim processes running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, local forwarding, temporary copies of files and directories, and clipboard access.
 
-This README is an informative guide to the [Nauvim specification](specification.md), version **1.2.0**. Specification versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+This README is an informative guide to the [Nauvim specification](specification.md), version **1.3.0**. Specification versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
 [Type notation](type-notation.md) defines the shared abstract types, representation rules and annotation syntax used by the specification.
 
@@ -29,7 +29,7 @@ This README is an informative guide to the [Nauvim specification](specification.
 | [7 Plugin interface and client operations](specification.md#plugin-interface-and-client-operations) | Client registration, operation without a selected destination, delegated client features and security. |
 | [8 Configuration](specification.md#configuration) | Lua loading and module search paths, forward compatibility, host selection, shared host parameters, host-specific security policies, SSH resolution and its optional configuration source, host and client information, program arguments, clipboard backends, native text input and UI-specific options. |
 | [9 Build-time features and dependencies](specification.md#build-time-features-and-dependencies) | Cargo feature flags, optional functionality and dependencies assigned to each component. |
-| [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, native input methods and grid rendering. |
+| [10 User interaction and rendering](specification.md#user-interaction-rendering-and-limitations) | Keyboard input, GUI mouse interaction, native text input and grid rendering. |
 | [11 `nauvim-plugin` API](specification.md#nauvim-plugin-api) | Lua interfaces and RPC contracts, including asynchronous operations, resource handles, errors and cancellation. |
 | [Annex A — Configuration examples](specification.md#configuration-examples) | Example Lua configurations, startup host selection, shared host parameters, plugin permissions, shallow merging, SSH source selection, module search paths, program specifications, clipboard settings and UI-specific options. |
 | [Annex B — OpenSSH correspondences](specification.md#openssh-directive-correspondences) | An informative mapping from native SSH fields to OpenSSH directives. |
