@@ -10,7 +10,7 @@ This document specifies the architecture and behaviour of Nauvim, a system that 
 
 It covers local and remote session management, remote procedure call (RPC) communication with host Neovims, plugin interfaces, client operations, configuration, build-time features and dependencies. It also specifies the initial platform targets and user interaction model.
 
-This document applies to the initial `nauvim` application, which uses Flutter, and the components that are independent of the user interface (UI). It covers native input method support for the attached editor in `nauvim`.
+This document applies to the initial `nauvim` application, which uses Flutter, and the components that are independent of the user interface (UI). It covers native text input for the attached editor in `nauvim`.
 
 Clause 8 defines the scope of the configuration interface. Annex A provides informative examples. Annex B provides informative guidance on OpenSSH configuration inheritance.
 
@@ -1299,7 +1299,7 @@ EXAMPLE `identity_agent = os.getenv("SSH_AUTH_SOCK")` explicitly obtains an agen
 
 The native value `identity_agent = "none"` shall be rejected because it is not an absolute path. Native Lua configuration shall not implicitly read `SSH_AUTH_SOCK`. When no value for the agent is supplied by host resolution, the native default shall be to use no authentication agent.
 
-These rules apply to native Lua input. The interpretation of settings obtained from the OpenSSH configuration source is governed by 8.5.4.
+These rules apply to native Lua input. The interpretation of settings obtained from the SSH configuration source is governed by 8.5.4.
 
 <a name="algorithm-preferences"></a>
 
@@ -1411,7 +1411,9 @@ When resolving the independent default `Host` with SSH settings, let `B` be `con
 
 <a name="openssh-configuration-source"></a>
 
-#### 8.5.4 OpenSSH configuration source, compatibility and errors
+<a name="854-openssh-configuration-source-compatibility-and-errors"></a>
+
+#### 8.5.4 SSH configuration source, OpenSSH compatibility and errors
 
 When the resolution procedure requires `O(X)` or `O(Y)`, Nauvim shall read the file using the path and format selected under 8.9 and use it as the SSH configuration source for that host.
 
@@ -1696,7 +1698,7 @@ A string `P` shall be equivalent to `{ path = P, format = "openssh", disabled = 
 
 For a table, Nauvim shall apply the recovery rules in 8.1.2 to `disabled` before determining whether the source is enabled. An omitted, nil or false `disabled` field shall enable the source. With `disabled = true`, `nauvim-core` shall ignore `path` and `format`, including when validating the configuration. It shall skip reading the SSH configuration file and applying settings from the source during SSH host resolution, including for jump hosts.
 
-For an enabled source, an omitted or nil `path` shall select `$HOME/.ssh/config`. Nauvim shall match format names case-insensitively. An omitted or nil `format` shall select `"openssh"`. A string that matches neither format name shall be a configuration-validation error under 8.1.2. Format selection for `"auto"` is unspecified. Changes to that selection shall be considered backward compatible under 5.4.
+For an enabled source, an omitted or nil `path` shall select `$HOME/.ssh/config`. The `format` type lists the canonical names. When validating a supplied `format` string, Nauvim shall match it case-insensitively against those names and use the matching canonical name. An omitted or nil `format` shall select `"openssh"`. A string that matches neither format name shall be a configuration-validation error under 8.1.2. Format selection for `"auto"` is unspecified. Changes to that selection shall be considered backward compatible under 5.4.
 
 NOTE The initial implementation is expected to select `"openssh"` for `"auto"`. An implementation can select a format based on the file extension and use `"openssh"` when the extension does not identify a format.
 
@@ -1839,7 +1841,7 @@ NOTE `openrussh-client` is developed as a separate project.
 
 ### 10.1 Keyboard and mouse interaction
 
-`nauvim` shall accept keyboard and mouse input. Native text input and its interaction with the ordinary keyboard path for the attached editor shall follow 10.2.
+`nauvim` shall accept keyboard and mouse input. Native text input and its interaction with the ordinary Neovim key path for the attached editor shall follow 10.2.
 
 When clipboard functionality is enabled, `nauvim` should provide key bindings that users would find natural on the client platform to invoke the GUI paste functionality of `nauvim-core` specified in 7.8. The specific key bindings are unspecified.
 
@@ -1859,7 +1861,9 @@ NOTE The prohibited delivery includes sending mouse input using `nvim_input_mous
 
 <a name="input-method-editors"></a>
 
-### 10.2 Input method editors
+<a name="102-input-method-editors"></a>
+
+### 10.2 Native text input
 
 `nauvim` shall handle native text input in its UI layer. When native text input is selected and the attached editor has focus, `nauvim` shall make that route available regardless of the host Neovim's mode. Runtime controls for changing the input route, if provided, are UI-specific.
 
@@ -1869,9 +1873,9 @@ When routing editor input through the client text input system, `nauvim` shall f
 
 `nauvim` shall keep preedit text in the client environment. It shall send committed text to the host Neovim for the originating attachment, in the order the client text input system supplied it. It shall deliver that text literally, including text resembling Neovim key notation. The host Neovim's ordinary input processing determines the result.
 
-EXAMPLE A commit containing `<Esc>` reaches the host Neovim as the five characters `<`, `E`, `s`, `c` and `>`.
+EXAMPLE The committed text `<Esc>` reaches the host Neovim as the five characters `<`, `E`, `s`, `c` and `>`.
 
-When `nauvim` draws preedit text, it shall draw it at the active input position using the same font selection, font size, baseline and glyph metrics as ordinary text at that position. It shall visually distinguish the preedit and use any composition caret, selection or segment information supplied for it. Where the client text input system supports candidate placement using geometry supplied by the application, `nauvim` shall provide caret or preedit geometry for the active input position.
+When `nauvim` draws preedit text, it shall draw it at the active input position using the same font selection, font size, baseline and glyph metrics as ordinary text at that position. It shall visually distinguish the preedit text and use any composition caret, selection or segment information supplied for it. Where the client text input system supports candidate placement using geometry supplied by the application, `nauvim` shall provide caret or preedit geometry for the active input position.
 
 `nauvim` shall clear pending composition when it ends or is cancelled, when the editor ceases to be the active text input target, or when the attachment ends. It shall bind each text input update to the session and attachment that received it. It shall apply updates only to their originating session while their originating attachment remains established. It shall apply preedit updates only while the editor is the active text input target.
 
