@@ -2,8 +2,6 @@
 
 <img src="assets/nauvim-logo.svg" alt="Nauvim logo" width="160" height="160">
 
-Logo by Masato Nakata. [Source](https://github.com/nauvim/nauvim-logo) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-
 Nauvim is a system that provides a graphical user interface for Neovim.
 
 The design keeps host Neovim processes running independently of the GUI, so sessions can survive detachment and application restarts. Host-side Lua plugins can request client-side previews, local forwarding, temporary copies of files and directories, and clipboard access.
