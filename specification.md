@@ -1,5 +1,7 @@
 # Nauvim — Graphical user interface for Neovim
 
+<img src="assets/nauvim-logo.svg" alt="Nauvim logo" width="160" height="160">
+
 **Specification version 1.3.0**
 
 <a name="scope"></a>
